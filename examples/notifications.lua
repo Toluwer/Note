@@ -8,6 +8,8 @@ local Window = Note:CreateWindow({
     Icon = "bell",
     Theme = "Dark",
     Size = UDim2.fromOffset(560, 400),
+    Draggable = true,
+    Resizable = true,
 })
 
 local Demo = Window:CreateTab({

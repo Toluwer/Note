@@ -305,6 +305,7 @@ function Window.new(library, config)
     self.CloseButton = closeButton
     self.SearchBox = searchBox
     self.ResizeHandle = resizeHandle
+    self.TitleDivider = divider
     self.Maid:Give(main)
 
     self.DragController = DragController.new(main, titleBar, {
@@ -480,6 +481,7 @@ function Window:Minimize()
     if self._destroyed or self.Minimized then return self end
     self.Minimized = true
     self._restoreSize = self.Main.Size
+    if self.TitleDivider then self.TitleDivider.Visible = false end
     if self.ResizeHandle then self.ResizeHandle.Visible = false end
     local targetWidth = math.max(300, math.min(self.Main.AbsoluteSize.X, 420))
     self.Library.Animation:Tween(self.Main, {
@@ -501,6 +503,11 @@ function Window:Restore()
     self.Library.Animation:Tween(self.Main, {
         Size = self._restoreSize or UDim2.fromOffset(620, 450),
     }, self.Library.Tokens.Animation.Normal)
+    task.delay(self.Library.Tokens.Animation.Normal, function()
+        if not self._destroyed and not self.Minimized and self.TitleDivider then
+            self.TitleDivider.Visible = true
+        end
+    end)
     self.DragController:SetEnabled(self.Draggable)
     if self.ResizeHandle then self.ResizeHandle.Visible = true end
     self.MinimizedChanged:Fire(false)

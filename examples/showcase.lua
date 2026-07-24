@@ -7,7 +7,6 @@ local Window = Note:CreateWindow({
     Subtitle = "Component Showcase",
     Icon = "panel-left",
     Theme = "Dark",
-    Accent = Color3.fromRGB(176, 176, 180),
     Size = UDim2.fromOffset(680, 500),
     MinimumSize = Vector2.new(480, 320),
     MaximumSize = Vector2.new(940, 720),

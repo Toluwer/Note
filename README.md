@@ -10,8 +10,8 @@ local Note = loadstring(game:HttpGet(
 
 ## Features
 
-- Dark and light themes with animated runtime switching
-- Per-window themes, custom accents, inherited custom themes, and theme signals
+- Neutral dark and light themes with animated runtime switching
+- Optional per-window accent colors, inherited custom themes, and theme signals
 - Draggable, optionally resizable windows with real icon-based minimize and close controls
 - Tabs, collapsible sections, live search, scrolling, responsive viewport clamping
 - Button, toggle, slider, input, searchable dropdown, keybind, color picker, label, paragraph, and divider controls
@@ -21,6 +21,8 @@ local Note = loadstring(game:HttpGet(
 - Feature-detected GUI protection, `gethui`, `cloneref`, and optional filesystem APIs
 - Official Lucide artwork through the pinned `latte-soft/lucide-roblox` atlas
 - Deterministic bundler that generates the committed single-file distribution
+
+`Dark` and `Light` intentionally use neutral grayscale defaults. Accent color is opt-in through `Window:SetAccent` or a color picker; the color picker remains a supported built-in component.
 
 ## Installation
 
@@ -56,7 +58,6 @@ local Window = Note:CreateWindow({
     Subtitle = "Basic example",
     Icon = "panel-left",
     Theme = "Dark",
-    Accent = Color3.fromRGB(176, 176, 180),
     Size = UDim2.fromOffset(620, 450),
     MinimumSize = Vector2.new(460, 300),
     Draggable = true,
@@ -421,8 +422,10 @@ Window:SetSearch("")
 
 Built-in themes:
 
-- `Dark`
-- `Light`
+- `Dark` — neutral charcoal and gray surfaces
+- `Light` — neutral white and gray surfaces
+
+Both built-in themes avoid colored or neon surface treatments. Accent color changes are optional.
 
 ```lua
 Window:SetTheme("Light")

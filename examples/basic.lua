@@ -7,7 +7,6 @@ local Window = Note:CreateWindow({
     Subtitle = "Basic example",
     Icon = "panel-left",
     Theme = "Dark",
-    Accent = Color3.fromRGB(176, 176, 180),
     Size = UDim2.fromOffset(620, 450),
     Draggable = true,
     Resizable = true,

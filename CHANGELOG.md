@@ -2,6 +2,20 @@
 
 All notable changes to Note are documented here.
 
+## 0.1.1 - 2026-07-24
+
+### Fixed
+
+- Removed the title-bar divider while minimized so it cannot protrude through rounded corners
+- Restored the divider only after the window finishes expanding
+
+### Changed
+
+- Synchronized all examples with the neutral Dark and Light defaults
+- Removed default window accent overrides from the basic and showcase examples
+- Updated the theme example to focus on Dark, Light, and the retained color picker
+- Updated README theme guidance to make accent colors explicitly opt-in
+
 ## 0.1.0 - 2026-07-24
 
 ### Added
