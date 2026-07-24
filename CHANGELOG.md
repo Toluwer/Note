@@ -6,6 +6,9 @@ All notable changes to Note are documented here.
 
 ### Fixed
 
+- Input validation errors now clear immediately when the typed value becomes valid
+- Live validation recovery applies to both normal and password fields
+- Programmatic `SetValue` calls clear an existing error when the new value is valid
 - Revealed password inputs now hide and clear the dot mask instead of drawing it beneath the real text
 - Password mask visibility stays synchronized during typing and programmatic value changes
 - Dropdowns now animate a fixed overlay surface instead of changing popup geometry
@@ -15,6 +18,7 @@ All notable changes to Note are documented here.
 
 ### Changed
 
+- Updated the showcase with matching username and password validation examples
 - Added `examples/dropdowns.lua` with single-select, multi-select, and rapid reversal tests
 
 ## 0.2.3 - 2026-07-24
