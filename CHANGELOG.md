@@ -2,6 +2,19 @@
 
 All notable changes to Note are documented here.
 
+## 0.2.2 - 2026-07-24
+
+### Fixed
+
+- Removed the decorative line beneath section headers
+- Rebuilt section collapse and expansion around one measured clip height
+- Cancelled interrupted section tweens and ignored stale completion callbacks
+- Rapid repeated collapse clicks no longer cause snapping, delayed hiding, or layout jumps
+
+### Changed
+
+- Updated the showcase and README to reflect the smooth collapsible-section behavior
+
 ## 0.2.1 - 2026-07-24
 
 ### Fixed

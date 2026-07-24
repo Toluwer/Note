@@ -33,6 +33,8 @@ function Section.new(tab, config)
         Maid = Maid.new(),
         Destroyed = Signal.new(),
         _layoutOrder = 0,
+        _collapseRevision = 0,
+        _expandedHeight = 0,
         _destroyed = false,
     }, Section)
 
@@ -117,14 +119,6 @@ function Section.new(tab, config)
         end))
     end
 
-    local divider = Utilities.Create("Frame", {
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 12, 0, headerHeight - 1),
-        Size = UDim2.new(1, -24, 0, 1),
-        Parent = frame,
-    })
-    self.Window.ThemeManager:Bind(divider, { BackgroundColor3 = "Border" })
-
     local bodyClip = Utilities.Create("Frame", {
         Name = "BodyClip",
         BackgroundTransparency = 1,
@@ -145,6 +139,17 @@ function Section.new(tab, config)
     })
     Utilities.Padding(body, 10, 10, 10, 10)
     local bodyList = Utilities.List(body, Enum.FillDirection.Vertical, 8)
+
+    local function updateExpandedHeight()
+        self._expandedHeight = math.max(20, bodyList.AbsoluteContentSize.Y + 20)
+    end
+    updateExpandedHeight()
+    self.Maid:Give(bodyList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        updateExpandedHeight()
+        if not self.Collapsed and bodyClip.AutomaticSize == Enum.AutomaticSize.None then
+            bodyClip.Size = UDim2.new(1, 0, 0, self._expandedHeight)
+        end
+    end))
 
     self.Frame = frame
     self.Header = header
@@ -225,29 +230,67 @@ function Section:SetCollapsed(value)
     if not self.Collapsible or self._destroyed then return self end
     value = value == true
     if self.Collapsed == value then return self end
+
     self.Collapsed = value
+    self._collapseRevision += 1
+    local revision = self._collapseRevision
+    local clip = self.BodyClip
+    local content = self.Content
+    local animation = self.Library.Animation
+
     if self.Chevron then
         self.Chevron:SetIcon(value and "chevron-down" or "chevron-up")
     end
-    local targetHeight = self.BodyList.AbsoluteContentSize.Y + 20
-    self.BodyClip.AutomaticSize = Enum.AutomaticSize.None
+
+    animation:Cancel(clip)
+    clip.AutomaticSize = Enum.AutomaticSize.None
+
     if value then
-        self.BodyClip.Size = UDim2.new(1, 0, 0, math.max(self.BodyClip.AbsoluteSize.Y, targetHeight))
-        self.Library.Animation:Tween(self.BodyClip, { Size = UDim2.new(1, 0, 0, 0) }, self.Library.Tokens.Animation.Normal)
-        task.delay(self.Library.Tokens.Animation.Normal, function()
-            if self.BodyClip and self.Collapsed then
-                self.Content.Visible = false
-            end
-        end)
+        local currentHeight = math.max(clip.AbsoluteSize.Y, clip.Size.Y.Offset, self._expandedHeight)
+        clip.Size = UDim2.new(1, 0, 0, currentHeight)
+        content.Visible = true
+
+        local tween = animation:Tween(
+            clip,
+            { Size = UDim2.new(1, 0, 0, 0) },
+            self.Library.Tokens.Animation.Normal,
+            Enum.EasingStyle.Quint,
+            Enum.EasingDirection.InOut
+        )
+        if tween then
+            local connection
+            connection = tween.Completed:Connect(function(playbackState)
+                if connection then connection:Disconnect() end
+                if self._destroyed or revision ~= self._collapseRevision then return end
+                if playbackState == Enum.PlaybackState.Completed and self.Collapsed then
+                    content.Visible = false
+                    clip.Size = UDim2.new(1, 0, 0, 0)
+                end
+            end)
+        end
     else
-        self.Content.Visible = true
-        self.BodyClip.Size = UDim2.new(1, 0, 0, 0)
-        self.Library.Animation:Tween(self.BodyClip, { Size = UDim2.new(1, 0, 0, targetHeight) }, self.Library.Tokens.Animation.Normal)
-        task.delay(self.Library.Tokens.Animation.Normal, function()
-            if self.BodyClip and not self.Collapsed then
-                self.BodyClip.AutomaticSize = Enum.AutomaticSize.Y
-            end
-        end)
+        content.Visible = true
+        clip.Size = UDim2.new(1, 0, 0, math.max(0, clip.AbsoluteSize.Y))
+        local targetHeight = math.max(20, self._expandedHeight, self.BodyList.AbsoluteContentSize.Y + 20)
+
+        local tween = animation:Tween(
+            clip,
+            { Size = UDim2.new(1, 0, 0, targetHeight) },
+            self.Library.Tokens.Animation.Normal,
+            Enum.EasingStyle.Quint,
+            Enum.EasingDirection.InOut
+        )
+        if tween then
+            local connection
+            connection = tween.Completed:Connect(function(playbackState)
+                if connection then connection:Disconnect() end
+                if self._destroyed or revision ~= self._collapseRevision then return end
+                if playbackState == Enum.PlaybackState.Completed and not self.Collapsed then
+                    clip.Size = UDim2.new(1, 0, 0, 0)
+                    clip.AutomaticSize = Enum.AutomaticSize.Y
+                end
+            end)
+        end
     end
     return self
 end

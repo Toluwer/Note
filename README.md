@@ -13,7 +13,7 @@ local Note = loadstring(game:HttpGet(
 - Frosted neutral dark and light themes with animated runtime switching
 - Built-in theme buttons, optional per-window accent colors, inherited custom themes, and theme signals
 - Draggable, optionally resizable windows with real icon-based minimize and close controls
-- Tabs, collapsible sections, live search, scrolling, responsive viewport clamping
+- Tabs, smoothly animated collapsible sections, live search, scrolling, responsive viewport clamping
 - Button, toggle, slider, input, searchable dropdown, keybind, color picker, label, paragraph, and divider controls
 - Shared overlay system for dropdowns, color pickers, tooltips, notifications, and dialogs
 - Centralized input management, callback protection, cleanup ownership, and signals

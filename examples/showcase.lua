@@ -28,7 +28,7 @@ local General = Window:CreateTab({
 
 local Actions = General:CreateSection({
     Name = "Actions",
-    Description = "Buttons, status, and modal actions.",
+    Description = "Buttons, status, modal actions, and smooth section collapsing.",
     Icon = "mouse-pointer-2",
     Collapsible = true,
 })
