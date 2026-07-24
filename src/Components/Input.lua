@@ -230,7 +230,9 @@ function Input:SetValue(value, silent)
     self.Value = value
     self.TextBox.Text = value
     if self.PasswordMask then
-        self.PasswordMask.Text = string.rep("•", #value)
+        self.PasswordMask.Text = self.Revealed and "" or string.rep("•", #value)
+        self.PasswordMask.Visible = not self.Revealed
+        self.PasswordMask.TextTransparency = self.Revealed and 1 or 0
     end
     if self.Flag then
         self.Library.Flags[self.Flag] = value
