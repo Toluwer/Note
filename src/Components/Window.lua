@@ -72,13 +72,13 @@ function Window.new(library, config)
     })
     Utilities.Corner(main, library.Tokens.Radius.Window)
     local mainStroke = Utilities.Stroke(main, Color3.new(), 1, 0)
-    mainStroke.ZIndex = 120
     self.ThemeManager:Bind(main, { BackgroundColor3 = "Background" })
     self.ThemeManager:Bind(mainStroke, { Color = "Border" })
 
     local titleBar = Utilities.Create("Frame", {
         Name = "TitleBar",
         BackgroundColor3 = Color3.new(),
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Size = UDim2.new(1, 0, 0, library.Tokens.Size.TitleBar),
         Active = true,
@@ -190,6 +190,7 @@ function Window.new(library, config)
     local sidebar = Utilities.Create("Frame", {
         Name = "Sidebar",
         BackgroundColor3 = Color3.new(),
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Size = UDim2.new(0, sidebarWidth, 1, 0),
         ZIndex = 2,
@@ -479,8 +480,6 @@ function Window:Minimize()
     if self._destroyed or self.Minimized then return self end
     self.Minimized = true
     self._restoreSize = self.Main.Size
-    self._restorePosition = self.Main.Position
-    self.DragController:SetEnabled(false)
     if self.ResizeHandle then self.ResizeHandle.Visible = false end
     local targetWidth = math.max(300, math.min(self.Main.AbsoluteSize.X, 420))
     self.Library.Animation:Tween(self.Main, {
@@ -501,7 +500,6 @@ function Window:Restore()
     self.Body.Visible = true
     self.Library.Animation:Tween(self.Main, {
         Size = self._restoreSize or UDim2.fromOffset(620, 450),
-        Position = self._restorePosition or self.Main.Position,
     }, self.Library.Tokens.Animation.Normal)
     self.DragController:SetEnabled(self.Draggable)
     if self.ResizeHandle then self.ResizeHandle.Visible = true end

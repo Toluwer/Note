@@ -56,7 +56,7 @@ local Window = Note:CreateWindow({
     Subtitle = "Basic example",
     Icon = "panel-left",
     Theme = "Dark",
-    Accent = Color3.fromRGB(110, 125, 255),
+    Accent = Color3.fromRGB(176, 176, 180),
     Size = UDim2.fromOffset(620, 450),
     MinimumSize = Vector2.new(460, 300),
     Draggable = true,
@@ -355,7 +355,7 @@ Escape cancels capture. Mouse movement and touch movement are not assignable.
 ```lua
 local Picker = Section:CreateColorpicker({
     Name = "Accent",
-    Default = Color3.fromRGB(110, 125, 255),
+    Default = Color3.fromRGB(176, 176, 180),
     Alpha = 0,
     ShowAlpha = true,
     Callback = function(color, alpha)
@@ -363,7 +363,7 @@ local Picker = Section:CreateColorpicker({
     end,
 })
 
-Picker:SetValue(Color3.fromRGB(140, 100, 255))
+Picker:SetValue(Color3.fromRGB(176, 176, 180))
 Picker:GetValue()
 Picker:Open()
 Picker:Close()
@@ -427,7 +427,7 @@ Built-in themes:
 ```lua
 Window:SetTheme("Light")
 Window:SetTheme("Dark")
-Window:SetAccent(Color3.fromRGB(140, 100, 255))
+Window:SetAccent(Color3.fromRGB(176, 176, 180))
 ```
 
 Register an inherited theme:
@@ -442,7 +442,7 @@ Note:RegisterTheme("Midnight", {
     Border = Color3.fromRGB(42, 44, 55),
     Text = Color3.fromRGB(240, 241, 245),
     TextMuted = Color3.fromRGB(155, 158, 171),
-    Accent = Color3.fromRGB(123, 105, 255),
+    Accent = Color3.fromRGB(176, 176, 180),
 })
 
 Window:SetTheme("Midnight")

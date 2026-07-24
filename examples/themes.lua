@@ -13,7 +13,7 @@ Note:RegisterTheme("Midnight", {
     Text = Color3.fromRGB(240, 241, 245),
     TextSecondary = Color3.fromRGB(185, 188, 198),
     TextMuted = Color3.fromRGB(145, 148, 162),
-    Accent = Color3.fromRGB(123, 105, 255),
+    Accent = Color3.fromRGB(176, 176, 180),
 })
 
 local Window = Note:CreateWindow({
@@ -21,7 +21,7 @@ local Window = Note:CreateWindow({
     Subtitle = "Dark, light, accent, and inheritance",
     Icon = "palette",
     Theme = "Dark",
-    Accent = Color3.fromRGB(110, 125, 255),
+    Accent = Color3.fromRGB(176, 176, 180),
     Size = UDim2.fromOffset(620, 450),
 })
 
@@ -62,7 +62,7 @@ Theme:CreateButton({
 Theme:CreateColorpicker({
     Name = "Accent Color",
     Description = "Applies a custom per-window accent.",
-    Default = Color3.fromRGB(110, 125, 255),
+    Default = Color3.fromRGB(176, 176, 180),
     Callback = function(color)
         Window:SetAccent(color)
     end,

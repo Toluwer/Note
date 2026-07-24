@@ -7,7 +7,7 @@ local Window = Note:CreateWindow({
     Subtitle = "Component Showcase",
     Icon = "panel-left",
     Theme = "Dark",
-    Accent = Color3.fromRGB(110, 125, 255),
+    Accent = Color3.fromRGB(176, 176, 180),
     Size = UDim2.fromOffset(680, 500),
     MinimumSize = Vector2.new(480, 320),
     MaximumSize = Vector2.new(940, 720),
@@ -182,7 +182,7 @@ Theme:CreateColorpicker({
     Name = "Accent Color",
     Description = "Hue, saturation, value, RGB, hex, and alpha controls.",
     Flag = "accent",
-    Default = Color3.fromRGB(110, 125, 255),
+    Default = Color3.fromRGB(176, 176, 180),
     ShowAlpha = true,
     Callback = function(color)
         Window:SetAccent(color)
