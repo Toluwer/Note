@@ -2,6 +2,19 @@
 
 All notable changes to Note are documented here.
 
+## Unreleased
+
+### Fixed
+
+- Dropdowns now animate a fixed overlay surface instead of changing popup geometry
+- Open and close animations reverse smoothly without stale destruction callbacks
+- Rapid repeated clicks no longer resize, jump, or destroy a reopened dropdown
+- Dropdown chevrons rotate smoothly with the popup state
+
+### Changed
+
+- Added `examples/dropdowns.lua` with single-select, multi-select, and rapid reversal tests
+
 ## 0.2.3 - 2026-07-24
 
 ### Fixed
