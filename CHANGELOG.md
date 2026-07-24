@@ -6,6 +6,8 @@ All notable changes to Note are documented here.
 
 ### Fixed
 
+- Revealed password inputs now hide and clear the dot mask instead of drawing it beneath the real text
+- Password mask visibility stays synchronized during typing and programmatic value changes
 - Dropdowns now animate a fixed overlay surface instead of changing popup geometry
 - Open and close animations reverse smoothly without stale destruction callbacks
 - Rapid repeated clicks no longer resize, jump, or destroy a reopened dropdown

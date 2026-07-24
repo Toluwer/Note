@@ -124,7 +124,7 @@ Data:CreateInput({
 
 Data:CreateInput({
     Name = "Password",
-    Description = "Password masking with official eye icons.",
+    Description = "Password masking that fully disappears while the value is revealed.",
     Placeholder = "Password",
     Password = true,
     CharacterLimit = 32,

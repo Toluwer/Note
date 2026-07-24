@@ -313,7 +313,7 @@ Input:Clear()
 Input:Focus()
 ```
 
-`Callback` runs on submission. `Changed` runs when accepted text changes.
+`Callback` runs on submission. `Changed` runs when accepted text changes. Password inputs render either the mask or the real text—never both—and keep that state synchronized during typing and `SetValue`.
 
 ### Dropdown
 

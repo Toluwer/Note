@@ -105,6 +105,11 @@ function Input.new(section, config)
         self.Maid:Give(reveal.Activated:Connect(function()
             self.Revealed = not self.Revealed
             textBox.TextTransparency = self.Revealed and 0 or 1
+            if self.PasswordMask then
+                self.PasswordMask.Visible = not self.Revealed
+                self.PasswordMask.TextTransparency = self.Revealed and 1 or 0
+                self.PasswordMask.Text = self.Revealed and "" or string.rep("•", #self.Value)
+            end
             revealIcon:SetIcon(self.Revealed and "eye" or "eye-off")
         end))
         self.PasswordMask = Utilities.Create("TextLabel", {
@@ -115,6 +120,9 @@ function Input.new(section, config)
             Text = string.rep("•", #self.Value),
             TextSize = textBox.TextSize,
             TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            Visible = true,
+            TextTransparency = 0,
             Parent = boxFrame,
         })
         self.Window.ThemeManager:Bind(self.PasswordMask, { TextColor3 = "Text" })
@@ -158,7 +166,9 @@ function Input.new(section, config)
         end
         self.Value = value
         if self.PasswordMask then
-            self.PasswordMask.Text = string.rep("•", #value)
+            self.PasswordMask.Text = self.Revealed and "" or string.rep("•", #value)
+            self.PasswordMask.Visible = not self.Revealed
+            self.PasswordMask.TextTransparency = self.Revealed and 1 or 0
         end
         if self.Flag then
             self.Library.Flags[self.Flag] = value
