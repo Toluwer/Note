@@ -170,24 +170,19 @@ function Input.new(section, config)
             self.PasswordMask.Visible = not self.Revealed
             self.PasswordMask.TextTransparency = self.Revealed and 1 or 0
         end
+        if self.Error then
+            local valid = self:_validateValue(value)
+            if valid then
+                self:SetError(nil)
+            end
+        end
         if self.Flag then
             self.Library.Flags[self.Flag] = value
         end
         Utilities.SafeCallback(self.Type, self.Name .. " Changed", self.ChangedCallback, value)
     end))
     self.Maid:Give(textBox.FocusLost:Connect(function(enterPressed)
-        local valid = true
-        local message
-        if type(self.Validator) == "function" then
-            local ok, result, validationMessage = Utilities.SafeCallback(
-                self.Type,
-                self.Name .. " Validation",
-                self.Validator,
-                self.Value
-            )
-            valid = ok and result ~= false
-            message = validationMessage
-        end
+        local valid, message = self:_validateValue(self.Value)
         self:SetError(valid and nil or (message or "Invalid value"))
         if valid then
             self:_fire(self.Value)
@@ -202,6 +197,19 @@ function Input.new(section, config)
         self.Library.Flags[self.Flag] = self.Value
     end
     return self
+end
+
+function Input:_validateValue(value)
+    if type(self.Validator) ~= "function" then
+        return true, nil
+    end
+    local ok, result, message = Utilities.SafeCallback(
+        self.Type,
+        self.Name .. " Validation",
+        self.Validator,
+        value
+    )
+    return ok and result ~= false, message
 end
 
 function Input:SetError(message)
@@ -233,6 +241,12 @@ function Input:SetValue(value, silent)
         self.PasswordMask.Text = self.Revealed and "" or string.rep("•", #value)
         self.PasswordMask.Visible = not self.Revealed
         self.PasswordMask.TextTransparency = self.Revealed and 1 or 0
+    end
+    if self.Error then
+        local valid = self:_validateValue(value)
+        if valid then
+            self:SetError(nil)
+        end
     end
     if self.Flag then
         self.Library.Flags[self.Flag] = value
