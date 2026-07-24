@@ -34,8 +34,17 @@ function Button.new(section, config)
     Utilities.Corner(action, self.Library.Tokens.Radius.Medium)
     local actionStroke = Utilities.Stroke(action, Color3.new(), 1, 0)
     local style = styleTokens[self.Style] or styleTokens.Secondary
-    self.Window.ThemeManager:Bind(action, { BackgroundColor3 = style.Background })
-    self.Window.ThemeManager:Bind(actionStroke, { Color = self.Style == "Secondary" and "Border" or style.Background })
+    self.Window.ThemeManager:Bind(action, {
+        BackgroundColor3 = style.Background,
+        BackgroundTransparency = function(theme)
+            local base = self.Style == "Secondary" and (theme.ElevatedTransparency or 0.14) or 0.04
+            return self._hovered and math.max(0, base - 0.08) or base
+        end,
+    })
+    self.Window.ThemeManager:Bind(actionStroke, {
+        Color = self.Style == "Secondary" and "Border" or style.Background,
+        Transparency = "BorderTransparency",
+    })
 
     local text = Utilities.Create("TextLabel", {
         BackgroundTransparency = 1,
@@ -68,10 +77,12 @@ function Button.new(section, config)
 
     self.Maid:Give(action.MouseEnter:Connect(function()
         if self.Disabled or self.Loading then return end
-        self.Library.Animation:Tween(action, { BackgroundTransparency = 0.08 }, self.Library.Tokens.Animation.Fast)
+        self._hovered = true
+        self.Window.ThemeManager:Apply(action, true)
     end))
     self.Maid:Give(action.MouseLeave:Connect(function()
-        self.Library.Animation:Tween(action, { BackgroundTransparency = 0 }, self.Library.Tokens.Animation.Fast)
+        self._hovered = false
+        self.Window.ThemeManager:Apply(action, true)
     end))
     self.Maid:Give(action.MouseButton1Down:Connect(function()
         if self.Disabled or self.Loading then return end

@@ -13,6 +13,8 @@ function ScrollContainer.Create(config, maid)
         Position = config.Position or UDim2.new(),
         CanvasSize = UDim2.fromOffset(0, 0),
         ScrollBarThickness = config.ScrollBarThickness or 3,
+        ScrollBarImageTransparency = config.ScrollBarImageTransparency or 0.10,
+        VerticalScrollBarInset = Enum.ScrollBarInset.Always,
         ScrollingDirection = Enum.ScrollingDirection.Y,
         AutomaticCanvasSize = Enum.AutomaticSize.None,
         ElasticBehavior = Enum.ElasticBehavior.WhenScrollable,

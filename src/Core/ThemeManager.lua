@@ -92,9 +92,13 @@ function ThemeManager:ApplyAll(animate)
     end
 end
 
-function ThemeManager:SetTheme(theme, animate)
+function ThemeManager:SetTheme(theme, animate, resetAccent)
     if self._destroyed then
         return
+    end
+    if resetAccent then
+        self._accentOverride = false
+        self.Accent = nil
     end
     local resolved, name = self:Resolve(theme)
     self.Theme = resolved
@@ -113,6 +117,16 @@ function ThemeManager:SetAccent(color, animate)
     end
     self.Accent = color
     self._accentOverride = true
+    self:ApplyAll(animate ~= false)
+    self.Changed:Fire(self.Theme, self.Name)
+end
+
+function ThemeManager:ClearAccent(animate)
+    if self._destroyed then
+        return
+    end
+    self._accentOverride = false
+    self.Accent = self.Theme and self.Theme.Accent or nil
     self:ApplyAll(animate ~= false)
     self.Changed:Fire(self.Theme, self.Name)
 end

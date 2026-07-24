@@ -39,8 +39,8 @@ function Dialog.new(library, config, themeManager)
     Utilities.Corner(panel, library.Tokens.Radius.Window)
     local stroke = Utilities.Stroke(panel, Color3.new(), 1, 0)
     stroke.ZIndex = 511
-    self.ThemeManager:Bind(panel, { BackgroundColor3 = "SurfaceElevated" })
-    self.ThemeManager:Bind(stroke, { Color = "Border" })
+    self.ThemeManager:Bind(panel, { BackgroundColor3 = "SurfaceElevated", BackgroundTransparency = "ElevatedTransparency" })
+    self.ThemeManager:Bind(stroke, { Color = "Border", Transparency = "BorderTransparency" })
 
     local close = Utilities.Create("TextButton", {
         BackgroundTransparency = 1,

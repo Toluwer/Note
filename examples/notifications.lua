@@ -2,6 +2,12 @@ local Note = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/Toluwer/Note/main/main.lua"
 ))()
 
+Note:Init({
+    Theme = "Dark",
+    FrostedGlass = true,
+    BlurSize = 14,
+})
+
 local Window = Note:CreateWindow({
     Title = "Notifications",
     Subtitle = "Stacking and dismissal",

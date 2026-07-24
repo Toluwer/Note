@@ -68,7 +68,7 @@ def main() -> None:
     required = {
         "Button", "Toggle", "Slider", "Input", "Dropdown", "Keybind",
         "Colorpicker", "Label", "Paragraph", "Divider", "Notification",
-        "Dialog", "Tooltip", "Window", "Tab", "Section",
+        "Dialog", "Tooltip", "Window", "Tab", "Section", "ThemeSwitcher",
     }
     component_names = {path.stem for path in (SRC / "Components").glob("*.lua")}
     missing = required - component_names

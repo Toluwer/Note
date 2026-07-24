@@ -41,8 +41,16 @@ function BaseComponent.new(section, componentType, config, height)
     self.Maid:Give(self.Destroyed)
     self.Maid:Give(self.Changed)
 
-    self.Window.ThemeManager:Bind(frame, { BackgroundColor3 = "Surface" })
-    self.Window.ThemeManager:Bind(stroke, { Color = "Border" })
+    self.Window.ThemeManager:Bind(frame, {
+        BackgroundColor3 = "Surface",
+        BackgroundTransparency = function(theme)
+            return self.Disabled and (theme.DisabledTransparency or 0.58) or (theme.SurfaceTransparency or 0)
+        end,
+    })
+    self.Window.ThemeManager:Bind(stroke, {
+        Color = "Border",
+        Transparency = "BorderTransparency",
+    })
 
     section:_registerComponent(self)
     if self.Flag then
@@ -64,7 +72,11 @@ function BaseComponent:AddTextBlock(widthOffset)
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = self.Frame,
     })
-    self.Window.ThemeManager:Bind(title, { TextColor3 = "Text" })
+    self.Window.ThemeManager:Bind(title, {
+        TextColor3 = function(theme)
+            return self.Disabled and theme.TextMuted or theme.Text
+        end,
+    })
     self.TitleLabel = title
 
     if self.Description ~= "" then
@@ -80,7 +92,11 @@ function BaseComponent:AddTextBlock(widthOffset)
             TextTruncate = Enum.TextTruncate.AtEnd,
             Parent = self.Frame,
         })
-        self.Window.ThemeManager:Bind(description, { TextColor3 = "TextMuted" })
+        self.Window.ThemeManager:Bind(description, {
+            TextColor3 = function(theme)
+                return self.Disabled and theme.TextMuted or theme.TextMuted
+            end,
+        })
         self.DescriptionLabel = description
     end
     return title
@@ -102,7 +118,9 @@ function BaseComponent:SetDisabled(value)
     end
     self.Disabled = value == true
     self.Frame.Active = not self.Disabled
-    self.Frame.BackgroundTransparency = self.Disabled and self.Library.Tokens.Transparency.Disabled or 0
+    self.Window.ThemeManager:Apply(self.Frame, true)
+    if self.TitleLabel then self.Window.ThemeManager:Apply(self.TitleLabel, true) end
+    if self.DescriptionLabel then self.Window.ThemeManager:Apply(self.DescriptionLabel, true) end
     return self
 end
 

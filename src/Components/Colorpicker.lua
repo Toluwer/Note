@@ -12,7 +12,7 @@ function Colorpicker.new(section, config)
     config = config or {}
     local self = BaseComponent.new(section, "Colorpicker", config, 56)
     setmetatable(self, Colorpicker)
-    self.Value = typeof(config.Default) == "Color3" and config.Default or Color3.fromRGB(110, 125, 255)
+    self.Value = typeof(config.Default) == "Color3" and config.Default or Color3.fromRGB(190, 190, 194)
     self.Default = self.Value
     self.Alpha = Utilities.Clamp(tonumber(config.Alpha) or 0, 0, 1)
     self.AllowAlpha = config.AllowAlpha == true or config.ShowAlpha == true
@@ -31,7 +31,7 @@ function Colorpicker.new(section, config)
     })
     Utilities.Corner(preview, self.Library.Tokens.Radius.Medium)
     local stroke = Utilities.Stroke(preview, Color3.new(), 1, 0)
-    self.Window.ThemeManager:Bind(stroke, { Color = "Border" })
+    self.Window.ThemeManager:Bind(stroke, { Color = "Border", Transparency = "BorderTransparency" })
     self.Preview = preview
     self:_syncPreview()
     self.Maid:Give(preview.Activated:Connect(function()
@@ -89,8 +89,8 @@ function Colorpicker:_makeField(parent, name, position, width)
     })
     Utilities.Corner(holder, self.Library.Tokens.Radius.Small)
     local stroke = Utilities.Stroke(holder, Color3.new(), 1, 0)
-    self.Window.ThemeManager:Bind(holder, { BackgroundColor3 = "Input" })
-    self.Window.ThemeManager:Bind(stroke, { Color = "Border" })
+    self.Window.ThemeManager:Bind(holder, { BackgroundColor3 = "Input", BackgroundTransparency = "InputTransparency" })
+    self.Window.ThemeManager:Bind(stroke, { Color = "Border", Transparency = "BorderTransparency" })
     local label = Utilities.Create("TextLabel", {
         BackgroundTransparency = 1,
         Position = UDim2.fromOffset(7, 0),
@@ -134,8 +134,8 @@ function Colorpicker:Open()
     })
     Utilities.Corner(popup, self.Library.Tokens.Radius.Large)
     local popupStroke = Utilities.Stroke(popup, Color3.new(), 1, 0)
-    self.Window.ThemeManager:Bind(popup, { BackgroundColor3 = "SurfaceElevated" })
-    self.Window.ThemeManager:Bind(popupStroke, { Color = "Border" })
+    self.Window.ThemeManager:Bind(popup, { BackgroundColor3 = "SurfaceElevated", BackgroundTransparency = "ElevatedTransparency" })
+    self.Window.ThemeManager:Bind(popupStroke, { Color = "Border", Transparency = "BorderTransparency" })
     maid:Give(popup)
 
     local title = Utilities.Create("TextLabel", {

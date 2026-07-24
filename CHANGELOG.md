@@ -2,6 +2,27 @@
 
 All notable changes to Note are documented here.
 
+## 0.2.0 - 2026-07-24
+
+### Added
+
+- Frosted-glass rendering with translucent theme tokens and an owned, configurable `BlurEffect`
+- `Section:CreateThemeButtons` / `CreateThemeSwitcher` for ready-made Dark and Light theme controls
+- `Window:ApplyTheme`, `Window:ClearAccent`, and `Note:SetFrostedGlass`
+
+### Fixed
+
+- Validation messages and input fields no longer shift into or clip through each other
+- Page and sidebar scrollbars remain inset from rounded window edges
+- Selected and disabled tabs now re-evaluate every theme-bound color and transparency token
+- Theme switches reset the previous custom accent by default so the entire palette changes together
+- First and last scrolling content no longer clip against the page viewport
+
+### Changed
+
+- Updated every runnable example and the README to use the frosted neutral theme workflow
+- Retained the color picker as the optional custom-accent control
+
 ## 0.1.1 - 2026-07-24
 
 ### Fixed

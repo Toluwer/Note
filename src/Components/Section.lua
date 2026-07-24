@@ -13,6 +13,7 @@ local Colorpicker = require("src/Components/Colorpicker")
 local Label = require("src/Components/Label")
 local Paragraph = require("src/Components/Paragraph")
 local Divider = require("src/Components/Divider")
+local ThemeSwitcher = require("src/Components/ThemeSwitcher")
 
 local Section = {}
 Section.__index = Section
@@ -47,8 +48,14 @@ function Section.new(tab, config)
     })
     Utilities.Corner(frame, self.Library.Tokens.Radius.Large)
     local stroke = Utilities.Stroke(frame, Color3.new(), 1, 0)
-    self.Window.ThemeManager:Bind(frame, { BackgroundColor3 = "SecondaryBackground" })
-    self.Window.ThemeManager:Bind(stroke, { Color = "Border" })
+    self.Window.ThemeManager:Bind(frame, {
+        BackgroundColor3 = "SecondaryBackground",
+        BackgroundTransparency = "SecondaryTransparency",
+    })
+    self.Window.ThemeManager:Bind(stroke, {
+        Color = "Border",
+        Transparency = "BorderTransparency",
+    })
 
     local headerHeight = self.Description ~= "" and 58 or 46
     local header = Utilities.Create("TextButton", {
@@ -265,6 +272,8 @@ function Section:CreateColorpicker(config) return Colorpicker.new(self, config) 
 function Section:CreateLabel(config) return Label.new(self, config) end
 function Section:CreateParagraph(config) return Paragraph.new(self, config) end
 function Section:CreateDivider(config) return Divider.new(self, config) end
+function Section:CreateThemeSwitcher(config) return ThemeSwitcher.new(self, config) end
+function Section:CreateThemeButtons(config) return ThemeSwitcher.new(self, config) end
 
 function Section:Destroy()
     if self._destroyed then return end

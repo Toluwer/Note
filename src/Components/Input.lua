@@ -8,8 +8,14 @@ setmetatable(Input, { __index = BaseComponent })
 
 function Input.new(section, config)
     config = config or {}
-    local self = BaseComponent.new(section, "Input", config, 82)
+    local hasDescription = tostring(config.Description or "") ~= ""
+    local normalHeight = hasDescription and 88 or 72
+    local errorHeight = normalHeight + 24
+    local self = BaseComponent.new(section, "Input", config, normalHeight)
     setmetatable(self, Input)
+    self._normalHeight = normalHeight
+    self._errorHeight = errorHeight
+    self._hasDescription = hasDescription
     self.Value = tostring(config.Default or "")
     self.ChangedCallback = config.Changed
     self.Validator = config.Validation or config.Validate
@@ -19,18 +25,30 @@ function Input.new(section, config)
     self.Password = config.Password == true
     self.Revealed = false
     self:AddTextBlock(-12)
+    if not hasDescription then
+        self.TitleLabel.Position = UDim2.fromOffset(12, 6)
+        self.TitleLabel.Size = UDim2.new(1, -24, 0, 20)
+    end
 
     local boxFrame = Utilities.Create("Frame", {
         Name = "InputSurface",
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 12, 1, -38),
-        Size = UDim2.new(1, -24, 0, 30),
+        Position = UDim2.fromOffset(12, hasDescription and 48 or 32),
+        Size = UDim2.new(1, -24, 0, 32),
         Parent = self.Frame,
     })
     Utilities.Corner(boxFrame, self.Library.Tokens.Radius.Medium)
     local stroke = Utilities.Stroke(boxFrame, Color3.new(), 1, 0)
-    self.Window.ThemeManager:Bind(boxFrame, { BackgroundColor3 = "Input" })
-    self.Window.ThemeManager:Bind(stroke, { Color = "Border" })
+    self.Window.ThemeManager:Bind(boxFrame, {
+        BackgroundColor3 = "Input",
+        BackgroundTransparency = "InputTransparency",
+    })
+    self.Window.ThemeManager:Bind(stroke, {
+        Color = function(theme)
+            return self.Error and theme.Destructive or theme.Border
+        end,
+        Transparency = "BorderTransparency",
+    })
 
     local textBox = Utilities.Create("TextBox", {
         Name = "TextBox",
@@ -43,6 +61,7 @@ function Input.new(section, config)
         Text = self.Value,
         TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = boxFrame,
     })
@@ -105,12 +124,13 @@ function Input.new(section, config)
     local errorLabel = Utilities.Create("TextLabel", {
         Name = "Error",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 1, -4),
-        Size = UDim2.new(1, -24, 0, 16),
+        Position = UDim2.fromOffset(12, normalHeight + 2),
+        Size = UDim2.new(1, -24, 0, 18),
         Font = Enum.Font.Gotham,
         Text = "",
         TextSize = 10,
         TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Visible = false,
         Parent = self.Frame,
@@ -180,8 +200,8 @@ function Input:SetError(message)
     self.Error = hasError and tostring(message) or nil
     self.ErrorLabel.Text = self.Error or ""
     self.ErrorLabel.Visible = hasError
-    self.InputStroke.Color = self.Window.ThemeManager:Get(hasError and "Destructive" or "Border")
-    self.Frame.Size = UDim2.new(1, 0, 0, hasError and 100 or 82)
+    self.Window.ThemeManager:Apply(self.InputStroke, true)
+    self.Frame.Size = UDim2.new(1, 0, 0, hasError and self._errorHeight or self._normalHeight)
     return self
 end
 

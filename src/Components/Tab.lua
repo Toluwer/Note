@@ -36,6 +36,21 @@ function Tab.new(window, config)
         Parent = window.TabList,
     })
     Utilities.Corner(button, self.Library.Tokens.Radius.Medium)
+    self.Window.ThemeManager:Bind(button, {
+        BackgroundColor3 = function(theme)
+            return self.Window.ActiveTab == self and theme.SurfaceSelected or theme.SurfaceHover
+        end,
+        BackgroundTransparency = function(theme)
+            if self.Disabled then
+                return theme.DisabledTransparency or 0.62
+            elseif self.Window.ActiveTab == self then
+                return theme.SelectedTransparency or 0.08
+            elseif self._hovered then
+                return theme.HoverTransparency or 0.14
+            end
+            return 1
+        end,
+    })
     local indicator = Utilities.Create("Frame", {
         Name = "Indicator",
         BorderSizePixel = 0,
@@ -54,6 +69,7 @@ function Tab.new(window, config)
         icon.Instance.Position = UDim2.new(0, 12, 0.5, 0)
         self.Window.ThemeManager:Bind(icon.Instance, {
             ImageColor3 = function(theme, accent)
+                if self.Disabled then return theme.TextMuted end
                 return self.Window.ActiveTab == self and accent or theme.TextSecondary
             end,
         })
@@ -75,6 +91,7 @@ function Tab.new(window, config)
     })
     self.Window.ThemeManager:Bind(label, {
         TextColor3 = function(theme, accent)
+            if self.Disabled then return theme.TextMuted end
             return self.Window.ActiveTab == self and theme.Text or theme.TextSecondary
         end,
     })
@@ -83,9 +100,12 @@ function Tab.new(window, config)
         Name = "Page_" .. self.Name,
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        Size = UDim2.fromScale(1, 1),
+        Position = UDim2.fromOffset(0, 6),
+        Size = UDim2.new(1, -6, 1, -12),
         CanvasSize = UDim2.fromOffset(0, 0),
         ScrollBarThickness = 3,
+        ScrollBarImageTransparency = 0.10,
+        VerticalScrollBarInset = Enum.ScrollBarInset.Always,
         ScrollingDirection = Enum.ScrollingDirection.Y,
         Visible = false,
         Parent = window.Pages,
@@ -125,15 +145,12 @@ function Tab.new(window, config)
         self:Select()
     end))
     self.Maid:Give(button.MouseEnter:Connect(function()
-        if self.Window.ActiveTab ~= self and not self.Disabled then
-            self.Library.Animation:Tween(button, { BackgroundTransparency = 0.75 }, self.Library.Tokens.Animation.Fast)
-            button.BackgroundColor3 = self.Window.ThemeManager:Get("SurfaceHover")
-        end
+        self._hovered = true
+        self.Window.ThemeManager:Apply(button, true)
     end))
     self.Maid:Give(button.MouseLeave:Connect(function()
-        if self.Window.ActiveTab ~= self then
-            self.Library.Animation:Tween(button, { BackgroundTransparency = 1 }, self.Library.Tokens.Animation.Fast)
-        end
+        self._hovered = false
+        self.Window.ThemeManager:Apply(button, true)
     end))
 
     window:_registerTab(self)
@@ -162,10 +179,7 @@ end
 
 function Tab:_setSelected(selected)
     self.Page.Visible = selected
-    self.Button.BackgroundColor3 = self.Window.ThemeManager:Get(selected and "SurfaceSelected" or "SurfaceHover")
-    self.Library.Animation:Tween(self.Button, {
-        BackgroundTransparency = selected and 0 or 1,
-    }, self.Library.Tokens.Animation.Fast)
+    self.Window.ThemeManager:Apply(self.Button, true)
     self.Library.Animation:Tween(self.Indicator, {
         BackgroundTransparency = selected and 0 or 1,
         Size = UDim2.fromOffset(3, selected and 18 or 8),
@@ -217,7 +231,9 @@ end
 function Tab:SetDisabled(value)
     self.Disabled = value == true
     self.Button.Active = not self.Disabled
-    self.Button.BackgroundTransparency = self.Disabled and 0.85 or (self.Window.ActiveTab == self and 0 or 1)
+    self.Window.ThemeManager:Apply(self.Button, true)
+    self.Window.ThemeManager:Apply(self.Label, true)
+    if self.IconObject then self.Window.ThemeManager:Apply(self.IconObject.Instance, true) end
     return self
 end
 

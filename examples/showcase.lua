@@ -2,6 +2,12 @@ local Note = loadstring(game:HttpGet(
     "https://raw.githubusercontent.com/Toluwer/Note/main/main.lua"
 ))()
 
+Note:Init({
+    Theme = "Dark",
+    FrostedGlass = true,
+    BlurSize = 14,
+})
+
 local Window = Note:CreateWindow({
     Title = "Note",
     Subtitle = "Component Showcase",
@@ -188,20 +194,11 @@ Theme:CreateColorpicker({
     end,
 })
 
-Theme:CreateButton({
-    Name = "Use Dark Theme",
-    Icon = "moon",
-    Callback = function()
-        Window:SetTheme("Dark")
-    end,
-})
-
-Theme:CreateButton({
-    Name = "Use Light Theme",
-    Icon = "sun",
-    Callback = function()
-        Window:SetTheme("Light")
-    end,
+Theme:CreateThemeButtons({
+    Name = "Interface Theme",
+    Description = "Switches every bound surface, text, icon, border, and accent token.",
+    Themes = { "Dark", "Light" },
+    ResetAccent = true,
 })
 
 local Typography = Appearance:CreateSection({

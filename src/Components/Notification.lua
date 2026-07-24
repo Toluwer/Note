@@ -40,8 +40,8 @@ function Notification.new(library, config, themeManager)
     })
     Utilities.Corner(frame, library.Tokens.Radius.Large)
     local stroke = Utilities.Stroke(frame, Color3.new(), 1, 0)
-    self.ThemeManager:Bind(frame, { BackgroundColor3 = "SurfaceElevated" })
-    self.ThemeManager:Bind(stroke, { Color = "Border" })
+    self.ThemeManager:Bind(frame, { BackgroundColor3 = "SurfaceElevated", BackgroundTransparency = "ElevatedTransparency" })
+    self.ThemeManager:Bind(stroke, { Color = "Border", Transparency = "BorderTransparency" })
 
     local kind = config.Type or "Info"
     local icon = Icons.Create({

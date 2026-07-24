@@ -44,8 +44,8 @@ function Dropdown.new(section, config)
     })
     Utilities.Corner(selectButton, self.Library.Tokens.Radius.Medium)
     local stroke = Utilities.Stroke(selectButton, Color3.new(), 1, 0)
-    self.Window.ThemeManager:Bind(selectButton, { BackgroundColor3 = "Input", TextColor3 = "Text" })
-    self.Window.ThemeManager:Bind(stroke, { Color = "Border" })
+    self.Window.ThemeManager:Bind(selectButton, { BackgroundColor3 = "Input", BackgroundTransparency = "InputTransparency", TextColor3 = "Text" })
+    self.Window.ThemeManager:Bind(stroke, { Color = "Border", Transparency = "BorderTransparency" })
     local selectedLabel = Utilities.Create("TextLabel", {
         BackgroundTransparency = 1,
         Position = UDim2.fromOffset(10, 0),
@@ -139,6 +139,7 @@ function Dropdown:_rebuildOptions(query)
             Utilities.Corner(row, self.Library.Tokens.Radius.Small)
             self.Window.ThemeManager:Bind(row, {
                 BackgroundColor3 = selected and "SurfaceSelected" or "Surface",
+                BackgroundTransparency = selected and "SelectedTransparency" or "SurfaceTransparency",
                 TextColor3 = "Text",
             })
             if selected then
@@ -148,10 +149,10 @@ function Dropdown:_rebuildOptions(query)
                 self.Window.ThemeManager:Bind(check.Instance, { ImageColor3 = "Accent" })
             end
             row.MouseEnter:Connect(function()
-                self.Library.Animation:Tween(row, { BackgroundTransparency = 0.08 }, self.Library.Tokens.Animation.Fast)
+                self.Library.Animation:Tween(row, { BackgroundTransparency = math.max(0, row.BackgroundTransparency - 0.08) }, self.Library.Tokens.Animation.Fast)
             end)
             row.MouseLeave:Connect(function()
-                self.Library.Animation:Tween(row, { BackgroundTransparency = 0 }, self.Library.Tokens.Animation.Fast)
+                self.Window.ThemeManager:Apply(row, true)
             end)
             row.Activated:Connect(function()
                 self:_select(option)
@@ -187,8 +188,8 @@ function Dropdown:Open()
     Utilities.Corner(popup, self.Library.Tokens.Radius.Large)
     local popupStroke = Utilities.Stroke(popup, Color3.new(), 1, 0)
     popupStroke.ZIndex = 206
-    self.Window.ThemeManager:Bind(popup, { BackgroundColor3 = "SurfaceElevated" })
-    self.Window.ThemeManager:Bind(popupStroke, { Color = "Border" })
+    self.Window.ThemeManager:Bind(popup, { BackgroundColor3 = "SurfaceElevated", BackgroundTransparency = "ElevatedTransparency" })
+    self.Window.ThemeManager:Bind(popupStroke, { Color = "Border", Transparency = "BorderTransparency" })
     maid:Give(popup)
 
     local topOffset = 8
@@ -202,8 +203,8 @@ function Dropdown:Open()
         })
         Utilities.Corner(searchFrame, self.Library.Tokens.Radius.Medium)
         local searchStroke = Utilities.Stroke(searchFrame, Color3.new(), 1, 0)
-        self.Window.ThemeManager:Bind(searchFrame, { BackgroundColor3 = "Input" })
-        self.Window.ThemeManager:Bind(searchStroke, { Color = "Border" })
+        self.Window.ThemeManager:Bind(searchFrame, { BackgroundColor3 = "Input", BackgroundTransparency = "InputTransparency" })
+        self.Window.ThemeManager:Bind(searchStroke, { Color = "Border", Transparency = "BorderTransparency" })
         local icon = Icons.Create({ Name = "search", Size = 14, Parent = searchFrame, ZIndex = 209 })
         icon.Instance.AnchorPoint = Vector2.new(0, 0.5)
         icon.Instance.Position = UDim2.new(0, 9, 0.5, 0)

@@ -72,8 +72,14 @@ function Window.new(library, config)
     })
     Utilities.Corner(main, library.Tokens.Radius.Window)
     local mainStroke = Utilities.Stroke(main, Color3.new(), 1, 0)
-    self.ThemeManager:Bind(main, { BackgroundColor3 = "Background" })
-    self.ThemeManager:Bind(mainStroke, { Color = "Border" })
+    self.ThemeManager:Bind(main, {
+        BackgroundColor3 = "Background",
+        BackgroundTransparency = "WindowTransparency",
+    })
+    self.ThemeManager:Bind(mainStroke, {
+        Color = "Border",
+        Transparency = "BorderTransparency",
+    })
 
     local titleBar = Utilities.Create("Frame", {
         Name = "TitleBar",
@@ -196,7 +202,7 @@ function Window.new(library, config)
         ZIndex = 2,
         Parent = body,
     })
-    self.ThemeManager:Bind(sidebar, { BackgroundColor3 = "SecondaryBackground" })
+    self.ThemeManager:Bind(sidebar, { BackgroundColor3 = "SecondaryBackground", BackgroundTransparency = "SecondaryTransparency" })
 
     local sidebarDivider = Utilities.Create("Frame", {
         BorderSizePixel = 0,
@@ -221,8 +227,14 @@ function Window.new(library, config)
         })
         Utilities.Corner(searchFrame, library.Tokens.Radius.Medium)
         local searchStroke = Utilities.Stroke(searchFrame, Color3.new(), 1, 0)
-        self.ThemeManager:Bind(searchFrame, { BackgroundColor3 = "Input" })
-        self.ThemeManager:Bind(searchStroke, { Color = "Border" })
+        self.ThemeManager:Bind(searchFrame, {
+            BackgroundColor3 = "Input",
+            BackgroundTransparency = "InputTransparency",
+        })
+        self.ThemeManager:Bind(searchStroke, {
+            Color = "Border",
+            Transparency = "BorderTransparency",
+        })
         local searchIcon = Icons.Create({ Name = "search", Size = 14, Parent = searchFrame })
         searchIcon.Instance.AnchorPoint = Vector2.new(0, 0.5)
         searchIcon.Instance.Position = UDim2.new(0, 9, 0.5, 0)
@@ -249,9 +261,11 @@ function Window.new(library, config)
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
         Position = UDim2.fromOffset(8, searchTop),
-        Size = UDim2.new(1, -8, 1, -searchTop - 8),
+        Size = UDim2.new(1, -14, 1, -searchTop - 12),
         CanvasSize = UDim2.fromOffset(0, 0),
         ScrollBarThickness = 2,
+        ScrollBarImageTransparency = 0.12,
+        VerticalScrollBarInset = Enum.ScrollBarInset.Always,
         Parent = sidebar,
     })
     Utilities.Padding(tabList, 0, 2, 0, 0)
@@ -447,8 +461,19 @@ function Window:SetIcon(icon)
     return self
 end
 
-function Window:SetTheme(theme)
-    self.ThemeManager:SetTheme(theme)
+function Window:SetTheme(theme, options)
+    options = options or {}
+    local preserveAccent = type(options) == "table" and options.PreserveAccent == true
+    self.ThemeManager:SetTheme(theme, nil, not preserveAccent)
+    return self
+end
+
+function Window:ApplyTheme(theme)
+    return self:SetTheme(theme)
+end
+
+function Window:ClearAccent()
+    self.ThemeManager:ClearAccent()
     return self
 end
 

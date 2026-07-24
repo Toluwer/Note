@@ -81,8 +81,8 @@ function Tooltip.Bind(library, target, text, themeManager, options)
             ZIndex = 311,
             Parent = popup,
         })
-        themeManager:Bind(popup, { BackgroundColor3 = "SurfaceElevated" })
-        themeManager:Bind(stroke, { Color = "Border" })
+        themeManager:Bind(popup, { BackgroundColor3 = "SurfaceElevated", BackgroundTransparency = "ElevatedTransparency" })
+        themeManager:Bind(stroke, { Color = "Border", Transparency = "BorderTransparency" })
         themeManager:Bind(label, { TextColor3 = "Text" })
         popup.BackgroundTransparency = 1
         label.TextTransparency = 1

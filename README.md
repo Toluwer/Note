@@ -10,8 +10,8 @@ local Note = loadstring(game:HttpGet(
 
 ## Features
 
-- Neutral dark and light themes with animated runtime switching
-- Optional per-window accent colors, inherited custom themes, and theme signals
+- Frosted neutral dark and light themes with animated runtime switching
+- Built-in theme buttons, optional per-window accent colors, inherited custom themes, and theme signals
 - Draggable, optionally resizable windows with real icon-based minimize and close controls
 - Tabs, collapsible sections, live search, scrolling, responsive viewport clamping
 - Button, toggle, slider, input, searchable dropdown, keybind, color picker, label, paragraph, and divider controls
@@ -43,6 +43,8 @@ Note:Init({
     ReuseExisting = false,
     DisplayOrder = 1000,
     Theme = "Dark",
+    FrostedGlass = true,
+    BlurSize = 14,
 })
 ```
 
@@ -209,6 +211,8 @@ Section:CreateColorpicker(config)
 Section:CreateLabel(config)
 Section:CreateParagraph(config)
 Section:CreateDivider(config)
+Section:CreateThemeButtons(config)
+Section:CreateThemeSwitcher(config)
 Section:Destroy()
 ```
 
@@ -425,7 +429,17 @@ Built-in themes:
 - `Dark` — neutral charcoal and gray surfaces
 - `Light` — neutral white and gray surfaces
 
-Both built-in themes avoid colored or neon surface treatments. Accent color changes are optional.
+Both built-in themes avoid colored or neon surface treatments. Accent color changes are optional. `Window:SetTheme` resets the accent to the selected theme by default, so every token changes together. Pass `{ PreserveAccent = true }` only when a custom accent should remain.
+
+Add ready-made theme buttons:
+
+```lua
+ThemeSection:CreateThemeButtons({
+    Name = "Interface Theme",
+    Themes = { "Dark", "Light" },
+    ResetAccent = true,
+})
+```
 
 ```lua
 Window:SetTheme("Light")
@@ -452,6 +466,17 @@ Window:SetTheme("Midnight")
 ```
 
 A custom table can also be passed directly to `Window:SetTheme`. Missing tokens inherit from its `Inherits` theme or the default theme.
+
+## Frosted glass
+
+Frosted glass is enabled by default. Note combines translucent theme surfaces with one owned `BlurEffect` in `Lighting`.
+
+```lua
+Note:SetFrostedGlass(true, 14)
+Note:SetFrostedGlass(false)
+```
+
+The blur effect is destroyed with `Note:Destroy()` and can be disabled during `Note:Init` with `FrostedGlass = false`.
 
 ## Lucide icons
 
