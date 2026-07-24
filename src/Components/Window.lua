@@ -202,7 +202,7 @@ function Window.new(library, config)
         ZIndex = 2,
         Parent = body,
     })
-    self.ThemeManager:Bind(sidebar, { BackgroundColor3 = "SecondaryBackground", BackgroundTransparency = "SecondaryTransparency" })
+    self.ThemeManager:Bind(sidebar, { BackgroundColor3 = "SecondaryBackground" })
 
     local sidebarDivider = Utilities.Create("Frame", {
         BorderSizePixel = 0,
