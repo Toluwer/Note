@@ -23,6 +23,9 @@ function Dropdown.new(section, config)
     self.Searchable = config.Searchable ~= false
     self.Multi = config.Multi == true or config.MultiSelect == true
     self.Value = self.Multi and {} or config.Default
+    self._popupRevision = 0
+    self._popupAnimating = false
+    self._isOpen = false
     if self.Multi and type(config.Default) == "table" then
         self.Value = table.clone(config.Default)
     elseif not self.Multi and self.Value == nil and config.AllowEmpty ~= true then
@@ -44,8 +47,15 @@ function Dropdown.new(section, config)
     })
     Utilities.Corner(selectButton, self.Library.Tokens.Radius.Medium)
     local stroke = Utilities.Stroke(selectButton, Color3.new(), 1, 0)
-    self.Window.ThemeManager:Bind(selectButton, { BackgroundColor3 = "Input", BackgroundTransparency = "InputTransparency", TextColor3 = "Text" })
-    self.Window.ThemeManager:Bind(stroke, { Color = "Border", Transparency = "BorderTransparency" })
+    self.Window.ThemeManager:Bind(selectButton, {
+        BackgroundColor3 = "Input",
+        BackgroundTransparency = "InputTransparency",
+        TextColor3 = "Text",
+    })
+    self.Window.ThemeManager:Bind(stroke, {
+        Color = "Border",
+        Transparency = "BorderTransparency",
+    })
     local selectedLabel = Utilities.Create("TextLabel", {
         BackgroundTransparency = 1,
         Position = UDim2.fromOffset(10, 0),
@@ -149,7 +159,11 @@ function Dropdown:_rebuildOptions(query)
                 self.Window.ThemeManager:Bind(check.Instance, { ImageColor3 = "Accent" })
             end
             row.MouseEnter:Connect(function()
-                self.Library.Animation:Tween(row, { BackgroundTransparency = math.max(0, row.BackgroundTransparency - 0.08) }, self.Library.Tokens.Animation.Fast)
+                self.Library.Animation:Tween(
+                    row,
+                    { BackgroundTransparency = math.max(0, row.BackgroundTransparency - 0.08) },
+                    self.Library.Tokens.Animation.Fast
+                )
             end)
             row.MouseLeave:Connect(function()
                 self.Window.ThemeManager:Apply(row, true)
@@ -173,24 +187,146 @@ function Dropdown:_rebuildOptions(query)
     end
 end
 
+function Dropdown:_destroyPopup(popup, popupMaid)
+    if self._popup == popup then
+        self._popup = nil
+        self._popupSurface = nil
+        self._popupScale = nil
+        self._popupMaid = nil
+        self._list = nil
+        self._searchBox = nil
+        self._searchText = nil
+        self._popupAnimating = false
+    end
+    if popupMaid then
+        popupMaid:Destroy()
+    elseif popup and popup.Parent then
+        popup:Destroy()
+    end
+end
+
+function Dropdown:_animatePopup(opening, revision)
+    local popup = self._popup
+    local surface = self._popupSurface
+    local scale = self._popupScale
+    if not popup or not surface or not scale then
+        return
+    end
+
+    local animation = self.Library.Animation
+    local duration = opening and self.Library.Tokens.Animation.Normal or self.Library.Tokens.Animation.Fast
+    self._popupAnimating = true
+
+    animation:Cancel(surface)
+    animation:Cancel(scale)
+    if self.Chevron and self.Chevron.Instance then
+        animation:Cancel(self.Chevron.Instance)
+        animation:Tween(
+            self.Chevron.Instance,
+            { Rotation = opening and 180 or 0 },
+            duration,
+            Enum.EasingStyle.Quint,
+            Enum.EasingDirection.Out
+        )
+    end
+
+    local fadeTween = animation:Tween(
+        surface,
+        { GroupTransparency = opening and 0 or 1 },
+        duration,
+        Enum.EasingStyle.Quint,
+        opening and Enum.EasingDirection.Out or Enum.EasingDirection.In
+    )
+    animation:Tween(
+        scale,
+        { Scale = opening and 1 or 0.965 },
+        duration,
+        Enum.EasingStyle.Quint,
+        opening and Enum.EasingDirection.Out or Enum.EasingDirection.In
+    )
+
+    if not fadeTween then
+        self._popupAnimating = false
+        if not opening and revision == self._popupRevision and not self._isOpen then
+            self:_destroyPopup(popup, self._popupMaid)
+        end
+        return
+    end
+
+    local connection
+    connection = fadeTween.Completed:Connect(function(playbackState)
+        if connection then connection:Disconnect() end
+        if self._destroyed or revision ~= self._popupRevision then return end
+        self._popupAnimating = false
+        if not opening and playbackState == Enum.PlaybackState.Completed and not self._isOpen then
+            self:_destroyPopup(popup, self._popupMaid)
+        end
+    end)
+end
+
 function Dropdown:Open()
-    if self._destroyed or self._popup or self.Disabled then return self end
+    if self._destroyed or self.Disabled then return self end
+    if self._isOpen then return self end
+
+    self._isOpen = true
+    self._popupRevision += 1
+    local revision = self._popupRevision
+
+    if self._popup then
+        self:_animatePopup(true, revision)
+        if self._searchBox then
+            task.defer(function()
+                if not self._destroyed and self._isOpen and revision == self._popupRevision
+                    and self._searchBox and self._searchBox.Parent then
+                    self._searchBox:CaptureFocus()
+                end
+            end)
+        end
+        return self
+    end
+
     local maid = Maid.new()
-    self._popupMaid = maid
+    local popupWidth = math.max(self.SelectButton.AbsoluteSize.X, 220)
+    local popupHeight = 236
     local popup = Utilities.Create("Frame", {
-        Name = "DropdownPopup",
-        BackgroundColor3 = Color3.new(),
+        Name = "DropdownPopupRoot",
+        BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        Size = UDim2.fromOffset(math.max(self.SelectButton.AbsoluteSize.X, 220), 236),
+        Size = UDim2.fromOffset(popupWidth, popupHeight),
+        Active = true,
         ZIndex = 205,
         Parent = self.Library.Overlay:GetLayer("Popovers"),
     })
-    Utilities.Corner(popup, self.Library.Tokens.Radius.Large)
-    local popupStroke = Utilities.Stroke(popup, Color3.new(), 1, 0)
-    popupStroke.ZIndex = 206
-    self.Window.ThemeManager:Bind(popup, { BackgroundColor3 = "SurfaceElevated", BackgroundTransparency = "ElevatedTransparency" })
-    self.Window.ThemeManager:Bind(popupStroke, { Color = "Border", Transparency = "BorderTransparency" })
     maid:Give(popup)
+
+    local surface = Utilities.Create("CanvasGroup", {
+        Name = "DropdownPopup",
+        BackgroundColor3 = Color3.new(),
+        BorderSizePixel = 0,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromScale(1, 1),
+        GroupTransparency = 1,
+        ClipsDescendants = true,
+        ZIndex = 205,
+        Parent = popup,
+    })
+    Utilities.Corner(surface, self.Library.Tokens.Radius.Large)
+    local popupStroke = Utilities.Stroke(surface, Color3.new(), 1, 0)
+    popupStroke.ZIndex = 206
+    self.Window.ThemeManager:Bind(surface, {
+        BackgroundColor3 = "SurfaceElevated",
+        BackgroundTransparency = "ElevatedTransparency",
+    })
+    self.Window.ThemeManager:Bind(popupStroke, {
+        Color = "Border",
+        Transparency = "BorderTransparency",
+    })
+
+    local popupScale = Utilities.Create("UIScale", {
+        Scale = 0.965,
+        Parent = surface,
+    })
 
     local topOffset = 8
     if self.Searchable then
@@ -199,12 +335,18 @@ function Dropdown:Open()
             Position = UDim2.fromOffset(8, 8),
             Size = UDim2.new(1, -16, 0, 32),
             ZIndex = 207,
-            Parent = popup,
+            Parent = surface,
         })
         Utilities.Corner(searchFrame, self.Library.Tokens.Radius.Medium)
         local searchStroke = Utilities.Stroke(searchFrame, Color3.new(), 1, 0)
-        self.Window.ThemeManager:Bind(searchFrame, { BackgroundColor3 = "Input", BackgroundTransparency = "InputTransparency" })
-        self.Window.ThemeManager:Bind(searchStroke, { Color = "Border", Transparency = "BorderTransparency" })
+        self.Window.ThemeManager:Bind(searchFrame, {
+            BackgroundColor3 = "Input",
+            BackgroundTransparency = "InputTransparency",
+        })
+        self.Window.ThemeManager:Bind(searchStroke, {
+            Color = "Border",
+            Transparency = "BorderTransparency",
+        })
         local icon = Icons.Create({ Name = "search", Size = 14, Parent = searchFrame, ZIndex = 209 })
         icon.Instance.AnchorPoint = Vector2.new(0, 0.5)
         icon.Instance.Position = UDim2.new(0, 9, 0.5, 0)
@@ -223,7 +365,10 @@ function Dropdown:Open()
             ZIndex = 209,
             Parent = searchFrame,
         })
-        self.Window.ThemeManager:Bind(searchBox, { TextColor3 = "Text", PlaceholderColor3 = "TextMuted" })
+        self.Window.ThemeManager:Bind(searchBox, {
+            TextColor3 = "Text",
+            PlaceholderColor3 = "TextMuted",
+        })
         maid:Give(searchBox:GetPropertyChangedSignal("Text"):Connect(function()
             self._searchText = searchBox.Text
             self:_rebuildOptions(searchBox.Text)
@@ -239,18 +384,23 @@ function Dropdown:Open()
         Size = UDim2.new(1, -16, 1, -topOffset - 8),
         CanvasSize = UDim2.fromOffset(0, 0),
         ScrollBarThickness = 3,
+        VerticalScrollBarInset = Enum.ScrollBarInset.Always,
         ZIndex = 208,
-        Parent = popup,
+        Parent = surface,
     })
     local listLayout = Utilities.List(list, Enum.FillDirection.Vertical, 4)
-    listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    maid:Give(listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         list.CanvasSize = UDim2.fromOffset(0, listLayout.AbsoluteContentSize.Y)
-    end)
+    end))
     self.Window.ThemeManager:Bind(list, { ScrollBarImageColor3 = "Scrollbar" })
+
     self._popup = popup
+    self._popupSurface = surface
+    self._popupScale = popupScale
+    self._popupMaid = maid
     self._list = list
+    self._searchText = ""
     self:_rebuildOptions("")
-    self.Chevron:SetIcon("chevron-up")
 
     local function reposition()
         if popup.Parent and self.SelectButton.Parent then
@@ -262,16 +412,15 @@ function Dropdown:Open()
     maid:Give(self.Library.InputManager:RegisterOutside({ popup, self.SelectButton }, function()
         self:Close()
     end))
-    maid:Give(self.Library.InputManager:PushEscape(function() self:Close() end))
-    popup.BackgroundTransparency = 1
-    popup.Size = UDim2.fromOffset(popup.Size.X.Offset, 206)
-    self.Library.Animation:Tween(popup, {
-        BackgroundTransparency = 0,
-        Size = UDim2.fromOffset(popup.Size.X.Offset, 236),
-    }, self.Library.Tokens.Animation.Normal)
+    maid:Give(self.Library.InputManager:PushEscape(function()
+        self:Close()
+    end))
+
+    self:_animatePopup(true, revision)
     if self._searchBox then
         task.defer(function()
-            if self._searchBox and self._searchBox.Parent then
+            if not self._destroyed and self._isOpen and revision == self._popupRevision
+                and self._searchBox and self._searchBox.Parent then
                 self._searchBox:CaptureFocus()
             end
         end)
@@ -280,31 +429,15 @@ function Dropdown:Open()
 end
 
 function Dropdown:Close()
-    if not self._popup then return self end
-    local popup = self._popup
-    self._popup = nil
-    self._list = nil
-    self._searchBox = nil
-    self.Chevron:SetIcon("chevron-down")
-    self.Library.Animation:Tween(popup, {
-        BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(popup.Size.X.Offset, math.max(150, popup.Size.Y.Offset - 24)),
-    }, self.Library.Tokens.Animation.Fast)
-    local popupMaid = self._popupMaid
-    self._popupMaid = nil
-    task.delay(self.Library.Tokens.Animation.Fast, function()
-        if popupMaid then
-            popupMaid:Destroy()
-        end
-        if popup and popup.Parent then
-            popup:Destroy()
-        end
-    end)
+    if not self._popup or not self._isOpen then return self end
+    self._isOpen = false
+    self._popupRevision += 1
+    self:_animatePopup(false, self._popupRevision)
     return self
 end
 
 function Dropdown:Toggle()
-    return self._popup and self:Close() or self:Open()
+    return self._isOpen and self:Close() or self:Open()
 end
 
 function Dropdown:SetValue(value, silent)
@@ -356,7 +489,14 @@ function Dropdown:SetOptions(options)
 end
 
 function Dropdown:Destroy()
-    self:Close()
+    self._popupRevision += 1
+    self._isOpen = false
+    if self._popupSurface then self.Library.Animation:Cancel(self._popupSurface) end
+    if self._popupScale then self.Library.Animation:Cancel(self._popupScale) end
+    if self.Chevron and self.Chevron.Instance then self.Library.Animation:Cancel(self.Chevron.Instance) end
+    local popup = self._popup
+    local popupMaid = self._popupMaid
+    self:_destroyPopup(popup, popupMaid)
     BaseComponent.Destroy(self)
 end
 
