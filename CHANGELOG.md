@@ -2,6 +2,19 @@
 
 All notable changes to Note are documented here.
 
+## 0.2.1 - 2026-07-24
+
+### Fixed
+
+- Notifications now use content-aware compact widths and grow vertically for wrapped text
+- Removed the notification progress strip and leading status icon
+- Frosted glass no longer creates a `Lighting.BlurEffect` or blurs the game view
+
+### Changed
+
+- `Note:SetFrostedGlass` now switches between translucent and opaque UI surfaces only
+- Updated notification examples and documentation to match the compact card design
+
 ## 0.2.0 - 2026-07-24
 
 ### Added

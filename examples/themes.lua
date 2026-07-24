@@ -5,7 +5,6 @@ local Note = loadstring(game:HttpGet(
 Note:Init({
     Theme = "Dark",
     FrostedGlass = true,
-    BlurSize = 14,
 })
 
 local Window = Note:CreateWindow({
@@ -54,5 +53,5 @@ Theme:CreateButton({
 
 Theme:CreateParagraph({
     Title = "Frosted glass",
-    Content = "Note uses translucent theme surfaces plus an owned BlurEffect. Call Note:SetFrostedGlass(false) to disable it.",
+    Content = "Note uses translucent UI surfaces only. It never adds a Lighting blur or blurs the game view.",
 })

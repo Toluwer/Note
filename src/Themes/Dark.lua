@@ -27,5 +27,4 @@ return {
     SelectedTransparency = 0.10,
     BorderTransparency = 0.34,
     DisabledTransparency = 0.58,
-    GlassBlur = 14,
 }

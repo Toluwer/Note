@@ -1,5 +1,4 @@
 local HttpService = game:GetService("HttpService")
-local Lighting = game:GetService("Lighting")
 
 local Compatibility = require("src/Core/Compatibility")
 local RootGui = require("src/Core/RootGui")
@@ -29,7 +28,7 @@ end
 
 function Note.new()
     return setmetatable({
-        Version = "0.2.0",
+        Version = "0.2.1",
         Tokens = Tokens,
         Themes = {
             Dark = Dark,
@@ -69,7 +68,7 @@ function Note:Init(config)
     self.Tooltip = Tooltip.new(self)
     self.Capabilities = Compatibility.Capabilities()
     self._initialized = true
-    self:_applyFrostedGlass(config.FrostedGlass ~= false, config.BlurSize)
+    self:_applyFrostedGlass(config.FrostedGlass ~= false)
     return self
 end
 
@@ -79,35 +78,21 @@ function Note:_ensureInitialized()
     end
 end
 
-function Note:_applyFrostedGlass(enabled, blurSize)
+function Note:_applyFrostedGlass(enabled)
     self.FrostedGlass = enabled == true
-    local defaultTheme = self.Themes[self.DefaultTheme] or self.Themes.Dark
-    self.BlurSize = tonumber(blurSize) or defaultTheme.GlassBlur or 14
-    local blurName = ((self.ScreenGui and self.ScreenGui.Name) or "NoteUI") .. "_FrostedGlass"
-    local existing = Lighting:FindFirstChild(blurName)
-    if existing and existing ~= self.BlurEffect and existing:GetAttribute("NoteOwned") == true then
-        existing:Destroy()
+    if self.GlobalThemeManager then
+        self.GlobalThemeManager:ApplyAll(true)
     end
-    if not self.FrostedGlass then
-        if self.BlurEffect then
-            self.BlurEffect:Destroy()
-            self.BlurEffect = nil
+    for _, window in ipairs(self.Windows) do
+        if window and not window._destroyed and window.ThemeManager then
+            window.ThemeManager:ApplyAll(true)
         end
-        return
     end
-    if not self.BlurEffect or not self.BlurEffect.Parent then
-        local blur = Instance.new("BlurEffect")
-        blur.Name = blurName
-        blur:SetAttribute("NoteOwned", true)
-        blur.Parent = Lighting
-        self.BlurEffect = blur
-    end
-    self.BlurEffect.Size = self.BlurSize
 end
 
-function Note:SetFrostedGlass(enabled, blurSize)
+function Note:SetFrostedGlass(enabled)
     self:_ensureInitialized()
-    self:_applyFrostedGlass(enabled ~= false, blurSize)
+    self:_applyFrostedGlass(enabled ~= false)
     return self
 end
 
@@ -306,10 +291,6 @@ function Note:Destroy()
     if self.Overlay then self.Overlay:Destroy() end
     if self.InputManager then self.InputManager:Destroy() end
     if self.Animation then self.Animation:Destroy() end
-    if self.BlurEffect then
-        self.BlurEffect:Destroy()
-        self.BlurEffect = nil
-    end
     if self.ScreenGui then self.ScreenGui:Destroy() end
 
     table.clear(self.Windows)

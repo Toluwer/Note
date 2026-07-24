@@ -68,6 +68,12 @@ function ThemeManager:Apply(instance, animate)
         else
             value = self:Get(token)
         end
+        if property == "BackgroundTransparency"
+            and self.Library.FrostedGlass == false
+            and type(value) == "number"
+            and value < 0.5 then
+            value = 0
+        end
         if value ~= nil then
             properties[property] = value
         end

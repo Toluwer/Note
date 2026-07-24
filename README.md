@@ -469,14 +469,14 @@ A custom table can also be passed directly to `Window:SetTheme`. Missing tokens 
 
 ## Frosted glass
 
-Frosted glass is enabled by default. Note combines translucent theme surfaces with one owned `BlurEffect` in `Lighting`.
+Frosted glass is enabled by default using translucent UI surfaces only. Note does not create a `BlurEffect`, modify `Lighting`, or blur the game view.
 
 ```lua
-Note:SetFrostedGlass(true, 14)
+Note:SetFrostedGlass(true)
 Note:SetFrostedGlass(false)
 ```
 
-The blur effect is destroyed with `Note:Destroy()` and can be disabled during `Note:Init` with `FrostedGlass = false`.
+Set `FrostedGlass = false` during `Note:Init`, or call `Note:SetFrostedGlass(false)`, to make the glass surfaces opaque.
 
 ## Lucide icons
 
@@ -512,7 +512,7 @@ local Notification = Note:Notify({
 Notification:Dismiss()
 ```
 
-Notifications stack inside the viewport, animate in and out, include a progress indicator, and support manual dismissal.
+Notifications size themselves from their title and content, wrap longer messages into additional height, stack inside the viewport, animate in and out, and support manual dismissal. They have no leading status icon or progress strip.
 
 ## Dialogs
 

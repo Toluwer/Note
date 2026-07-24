@@ -5,7 +5,6 @@ local Note = loadstring(game:HttpGet(
 Note:Init({
     Theme = "Dark",
     FrostedGlass = true,
-    BlurSize = 14,
 })
 
 local Window = Note:CreateWindow({
@@ -73,5 +72,18 @@ Types:CreateButton({
             Duration = 0,
         })
         print("Notification:", notification)
+    end,
+})
+
+
+Types:CreateButton({
+    Name = "Long Message",
+    Icon = "align-left",
+    Callback = function()
+        Note:Notify({
+            Title = "Compact notification",
+            Content = "Longer notification text wraps onto additional lines and increases the card height instead of stretching across the screen.",
+            Duration = 7,
+        })
     end,
 })

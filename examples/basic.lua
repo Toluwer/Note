@@ -5,7 +5,6 @@ local Note = loadstring(game:HttpGet(
 Note:Init({
     Theme = "Dark",
     FrostedGlass = true,
-    BlurSize = 14,
 })
 
 local Window = Note:CreateWindow({
