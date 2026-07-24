@@ -28,7 +28,7 @@ end
 
 function Note.new()
     return setmetatable({
-        Version = "0.2.2",
+        Version = "0.2.3",
         Tokens = Tokens,
         Themes = {
             Dark = Dark,

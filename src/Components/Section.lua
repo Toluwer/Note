@@ -34,6 +34,7 @@ function Section.new(tab, config)
         Destroyed = Signal.new(),
         _layoutOrder = 0,
         _collapseRevision = 0,
+        _collapseAnimating = false,
         _expandedHeight = 0,
         _destroyed = false,
     }, Section)
@@ -146,7 +147,9 @@ function Section.new(tab, config)
     updateExpandedHeight()
     self.Maid:Give(bodyList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         updateExpandedHeight()
-        if not self.Collapsed and bodyClip.AutomaticSize == Enum.AutomaticSize.None then
+        if not self.Collapsed
+            and not self._collapseAnimating
+            and bodyClip.AutomaticSize == Enum.AutomaticSize.None then
             bodyClip.Size = UDim2.new(1, 0, 0, self._expandedHeight)
         end
     end))
@@ -243,10 +246,14 @@ function Section:SetCollapsed(value)
     end
 
     animation:Cancel(clip)
+    self._collapseAnimating = true
     clip.AutomaticSize = Enum.AutomaticSize.None
 
     if value then
-        local currentHeight = math.max(clip.AbsoluteSize.Y, clip.Size.Y.Offset, self._expandedHeight)
+        local currentHeight = math.max(0, clip.AbsoluteSize.Y)
+        if currentHeight <= 0 and content.Visible then
+            currentHeight = math.max(20, self._expandedHeight)
+        end
         clip.Size = UDim2.new(1, 0, 0, currentHeight)
         content.Visible = true
 
@@ -262,11 +269,16 @@ function Section:SetCollapsed(value)
             connection = tween.Completed:Connect(function(playbackState)
                 if connection then connection:Disconnect() end
                 if self._destroyed or revision ~= self._collapseRevision then return end
+                self._collapseAnimating = false
                 if playbackState == Enum.PlaybackState.Completed and self.Collapsed then
                     content.Visible = false
                     clip.Size = UDim2.new(1, 0, 0, 0)
                 end
             end)
+        else
+            self._collapseAnimating = false
+            content.Visible = false
+            clip.Size = UDim2.new(1, 0, 0, 0)
         end
     else
         content.Visible = true
@@ -285,11 +297,16 @@ function Section:SetCollapsed(value)
             connection = tween.Completed:Connect(function(playbackState)
                 if connection then connection:Disconnect() end
                 if self._destroyed or revision ~= self._collapseRevision then return end
+                self._collapseAnimating = false
                 if playbackState == Enum.PlaybackState.Completed and not self.Collapsed then
                     clip.Size = UDim2.new(1, 0, 0, 0)
                     clip.AutomaticSize = Enum.AutomaticSize.Y
                 end
             end)
+        else
+            self._collapseAnimating = false
+            clip.Size = UDim2.new(1, 0, 0, 0)
+            clip.AutomaticSize = Enum.AutomaticSize.Y
         end
     end
     return self

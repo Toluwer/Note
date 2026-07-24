@@ -2,6 +2,14 @@
 
 All notable changes to Note are documented here.
 
+## 0.2.3 - 2026-07-24
+
+### Fixed
+
+- Section collapse now continues from the currently visible height when interrupted
+- Expansion layout updates cannot force an active tween to jump to its final height
+- Rapid alternating clicks remain smooth in both directions
+
 ## 0.2.2 - 2026-07-24
 
 ### Fixed
