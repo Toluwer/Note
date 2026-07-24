@@ -106,7 +106,7 @@ local Data = General:CreateSection({
 
 Data:CreateInput({
     Name = "Username",
-    Description = "Validates a short user-supplied value.",
+    Description = "The error clears as soon as three characters are entered.",
     Flag = "username",
     Placeholder = "Username",
     CharacterLimit = 24,
@@ -124,10 +124,13 @@ Data:CreateInput({
 
 Data:CreateInput({
     Name = "Password",
-    Description = "Password masking that fully disappears while the value is revealed.",
+    Description = "Password errors also clear immediately once valid.",
     Placeholder = "Password",
     Password = true,
     CharacterLimit = 32,
+    Validate = function(value)
+        return #value >= 3, "Use at least three characters."
+    end,
 })
 
 Data:CreateDropdown({
