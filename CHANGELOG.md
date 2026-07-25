@@ -2,17 +2,19 @@
 
 All notable changes to Note are documented here.
 
-## Unreleased
+## 0.3.0 - 2026-07-25
 
 ### Added
 
-- `Section:CreateProgressBar` and `Section:CreateProgress` with determinate, indeterminate, ranged, status, prefix, suffix, and flag support
-- `Section:CreateDataTable` and `Section:CreateTable` with sortable columns, row selection, pagination, runtime row replacement, and table-aware search
-- `Section:CreateContextMenu` with anchored and pointer-positioned opening, icons, shortcuts, dividers, checkable items, destructive actions, and arbitrary target binding
-- `Section:CreateCommandPalette` with live filtering, keyboard navigation, shortcuts, configurable commands, and global open-key support
+- Progress bar component with determinate and indeterminate states, custom ranges, status text, flags, and animated value updates
+- Data table component with sortable columns, row selection, pagination, runtime rows, custom formatting, and table-content search
+- Context menu component with anchored or pointer-positioned opening, icons, shortcuts, dividers, disabled items, checkable actions, and destructive actions
+- Command palette component with live filtering, keyboard navigation, configurable shortcuts, categories, keywords, and command execution
+- Numeric-only input example using the existing `CreateInput` component
 
 ### Fixed
 
+- Advanced showcase section now uses a valid bundled icon instead of leaving a blank partially constructed section
 - Tooltips now size to their actual text instead of always using the maximum width
 - Short tooltip labels stay compact while longer text wraps and grows vertically
 - Removed the dark visual scrim behind modal dialogs
@@ -33,8 +35,6 @@ All notable changes to Note are documented here.
 
 - Added `Blur` and `BlurSize` dialog options and synchronized the showcase and README
 - Updated the showcase with matching username and password validation examples
-- Added a numeric-input example using the existing `CreateInput` component instead of introducing a duplicate number-input control
-- Expanded `examples/showcase.lua` with progress bar, data table, context menu, and command palette demonstrations
 - Added `examples/dropdowns.lua` with single-select, multi-select, and rapid reversal tests
 
 ## 0.2.3 - 2026-07-24
