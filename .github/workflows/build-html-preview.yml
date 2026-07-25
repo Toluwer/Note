@@ -1,0 +1,114 @@
+name: Build HTML preview
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build-html-preview.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install browser renderer
+        run: |
+          python -m pip install --disable-pip-version-check playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Decode HTML and render screenshots
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64
+          import gzip
+          from playwright.sync_api import sync_playwright
+
+          preview = Path("preview")
+          payload = (preview / ".index.html.gz.b64").read_text(encoding="utf-8").strip()
+          html = gzip.decompress(base64.b64decode(payload))
+          (preview / "index.html").write_bytes(html)
+
+          with sync_playwright() as playwright:
+              browser = playwright.chromium.launch(headless=True)
+              for theme in ("dark", "light"):
+                  page = browser.new_page(
+                      viewport={"width": 820, "height": 620},
+                      device_scale_factor=2,
+                  )
+                  page.set_content(html.decode("utf-8"), wait_until="load")
+                  page.evaluate(
+                      "theme => { setTheme(theme); document.body.classList.add('capture'); }",
+                      theme,
+                  )
+                  page.wait_for_timeout(250)
+                  page.screenshot(path=str(preview / f"{theme}.png"), full_page=True)
+                  page.close()
+              browser.close()
+
+          (preview / "README.md").write_text(
+              "# Note HTML Preview\n\n"
+              "`index.html` is a self-contained HTML/CSS/JavaScript recreation of "
+              "`examples/showcase.lua`. The Luau showcase remains unchanged.\n\n"
+              "The preview includes the General, Appearance, and Diagnostics tabs, "
+              "dark/light themes, section collapsing, controls, validation, password "
+              "reveal, dropdowns, notifications, and the dialog interaction.\n\n"
+              "## Dark\n\n![Note UI dark preview](dark.png)\n\n"
+              "## Light\n\n![Note UI light preview](light.png)\n\n"
+              "Open `index.html` directly in a browser. Use `?theme=dark` or "
+              "`?theme=light` to choose the initial theme.\n",
+              encoding="utf-8",
+          )
+
+          readme_path = Path("README.md")
+          project_readme = readme_path.read_text(encoding="utf-8")
+          start = "<!-- note-preview-start -->"
+          end = "<!-- note-preview-end -->"
+          section = """
+<!-- note-preview-start -->
+## Preview
+
+<table>
+<tr>
+<td><strong>Dark</strong></td>
+<td><strong>Light</strong></td>
+</tr>
+<tr>
+<td><img src="preview/dark.png" alt="Note dark theme preview"></td>
+<td><img src="preview/light.png" alt="Note light theme preview"></td>
+</tr>
+</table>
+
+The browser-rendered, interactive recreation of `examples/showcase.lua` is in [`preview/index.html`](preview/index.html).
+<!-- note-preview-end -->
+"""
+          if start in project_readme and end in project_readme:
+              before = project_readme.split(start, 1)[0]
+              after = project_readme.split(end, 1)[1]
+              project_readme = before + section.strip("\n") + after
+          elif "## Installation" in project_readme:
+              project_readme = project_readme.replace(
+                  "## Installation",
+                  section + "\n## Installation",
+                  1,
+              )
+          else:
+              project_readme = project_readme.rstrip() + "\n\n" + section
+          readme_path.write_text(project_readme, encoding="utf-8")
+          PY
+
+      - name: Commit generated preview
+        run: |
+          rm -f preview/.index.html.gz.b64
+          rm -f .github/workflows/build-html-preview.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: add browser-rendered HTML previews"
+          git push
