@@ -118,56 +118,25 @@ end
 
 function Note:CreateWindow(config)
     self:_ensureInitialized()
-    local window = Window.new(self, config)
+    return Window.new(self, config or {})
+end
+
+function Note:_registerWindow(window)
     table.insert(self.Windows, window)
-    window.Destroyed:Connect(function()
-        removeFrom(self.Windows, window)
-    end)
-    return window
 end
 
-function Note:Notify(config)
-    self:_ensureInitialized()
-    local notification = Notification.new(self, nil, config)
-    table.insert(self.Notifications, notification)
-    notification.Destroyed:Connect(function()
-        removeFrom(self.Notifications, notification)
-    end)
-    return notification
-end
-
-function Note:Dialog(config)
-    self:_ensureInitialized()
-    local dialog = Dialog.new(self, nil, config)
-    table.insert(self.Dialogs, dialog)
-    dialog.Destroyed:Connect(function()
-        removeFrom(self.Dialogs, dialog)
-    end)
-    return dialog
-end
-
-function Note:RegisterTooltip(guiObject, config)
-    self:_ensureInitialized()
-    return self.Tooltip:Register(guiObject, config)
-end
-
-function Note:GetFlag(flag)
-    return self.Flags[flag]
-end
-
-function Note:SetFlag(flag, value, silent)
-    local component = self._flagBindings[flag]
-    if component and component.SetValue then
-        component:SetValue(value, silent)
-    else
-        self.Flags[flag] = value
-    end
-    return self
+function Note:_unregisterWindow(window)
+    removeFrom(self.Windows, window)
 end
 
 function Note:_registerFlag(flag, component)
+    assert(type(flag) == "string" and flag ~= "", "[Note] Flag must be a non-empty string")
+    local previous = self._flagBindings[flag]
+    if previous and previous ~= component and not previous._destroyed then
+        error(string.format('[Note] Flag "%s" is already registered', flag), 3)
+    end
     self._flagBindings[flag] = component
-    if component.GetValue then
+    if type(component.GetValue) == "function" then
         self.Flags[flag] = component:GetValue()
     end
 end
@@ -175,31 +144,120 @@ end
 function Note:_unregisterFlag(flag, component)
     if self._flagBindings[flag] == component then
         self._flagBindings[flag] = nil
+        self.Flags[flag] = nil
     end
 end
 
-function Note:ExportConfig()
-    local output = {}
-    for flag, value in pairs(self.Flags) do
-        output[flag] = Utilities.Serialize(value)
-    end
-    return HttpService:JSONEncode(output)
-end
-
-function Note:ImportConfig(json, silent)
-    local decoded = HttpService:JSONDecode(json)
-    for flag, value in pairs(decoded) do
-        self:SetFlag(flag, Utilities.Deserialize(value), silent)
+function Note:SetFlag(flag, value, silent)
+    local component = self._flagBindings[flag]
+    if component and not component._destroyed and type(component.SetValue) == "function" then
+        component:SetValue(value, silent == true)
+        self.Flags[flag] = component:GetValue()
+    else
+        self.Flags[flag] = value
     end
     return self
 end
 
-function Note:GetCapabilities()
-    self:_ensureInitialized()
-    return Utilities.DeepCopy(self.Capabilities)
+function Note:GetFlag(flag)
+    return self.Flags[flag]
 end
 
-function Note:GetIconNames()
+function Note:Notify(config, themeManager)
+    self:_ensureInitialized()
+    local notification = Notification.new(self, config or {}, themeManager)
+    table.insert(self.Notifications, notification)
+    self:_layoutNotifications()
+    return notification
+end
+
+function Note:_layoutNotifications()
+    local visible = {}
+    for _, notification in ipairs(self.Notifications) do
+        if notification and not notification._destroyed and notification.Frame then
+            table.insert(visible, notification)
+        end
+    end
+    self.Notifications = visible
+    local y = 16
+    for _, notification in ipairs(visible) do
+        self.Animation:Tween(notification.Frame, {
+            Position = UDim2.new(1, -16, 0, y),
+        }, self.Tokens.Animation.Normal)
+        y += notification.Frame.AbsoluteSize.Y + 10
+    end
+end
+
+function Note:_removeNotification(notification)
+    removeFrom(self.Notifications, notification)
+    for _, window in ipairs(self.Windows) do
+        removeFrom(window.Notifications, notification)
+    end
+    self:_layoutNotifications()
+end
+
+function Note:Dialog(config, themeManager)
+    self:_ensureInitialized()
+    if self.ActiveDialog and not self.ActiveDialog._destroyed then
+        self.ActiveDialog:Close(nil)
+    end
+    local dialog = Dialog.new(self, config or {}, themeManager)
+    self.ActiveDialog = dialog
+    table.insert(self.Dialogs, dialog)
+    return dialog
+end
+
+function Note:_removeDialog(dialog)
+    removeFrom(self.Dialogs, dialog)
+    for _, window in ipairs(self.Windows) do
+        removeFrom(window.Dialogs, dialog)
+    end
+    if self.ActiveDialog == dialog then
+        self.ActiveDialog = nil
+    end
+end
+
+function Note:ExportConfig()
+    local config = {}
+    for flag, value in pairs(self.Flags) do
+        config[flag] = Utilities.Serialize(value)
+    end
+    return config
+end
+
+function Note:ImportConfig(config, options)
+    assert(type(config) == "table", "[Note] ImportConfig expected a table")
+    options = options or {}
+    for flag, value in pairs(config) do
+        local decoded = Utilities.Deserialize(value)
+        if self._flagBindings[flag] or options.AllowUnknown then
+            self:SetFlag(flag, decoded, options.Silent)
+        end
+    end
+    return self
+end
+
+function Note:WriteConfig(path, config)
+    local filesystem = Compatibility.GetFilesystem()
+    assert(type(filesystem.writefile) == "function", "[Note] writefile is unavailable in this runtime")
+    local encoded = HttpService:JSONEncode(config or self:ExportConfig())
+    filesystem.writefile(path, encoded)
+    return self
+end
+
+function Note:ReadConfig(path, options)
+    local filesystem = Compatibility.GetFilesystem()
+    assert(type(filesystem.readfile) == "function", "[Note] readfile is unavailable in this runtime")
+    local decoded = HttpService:JSONDecode(filesystem.readfile(path))
+    self:ImportConfig(decoded, options)
+    return decoded
+end
+
+function Note:GetCapabilities()
+    return Compatibility.Capabilities()
+end
+
+function Note:GetIcons()
     return Icons.Names()
 end
 
@@ -208,23 +266,39 @@ function Note:Destroy()
         return
     end
     self._destroyed = true
+
     for i = #self.Dialogs, 1, -1 do
-        self.Dialogs[i]:Destroy()
+        local dialog = self.Dialogs[i]
+        if dialog and not dialog._destroyed then
+            dialog:Destroy()
+        end
     end
     for i = #self.Notifications, 1, -1 do
-        self.Notifications[i]:Destroy()
+        local notification = self.Notifications[i]
+        if notification and not notification._destroyed then
+            notification:Destroy()
+        end
     end
     for i = #self.Windows, 1, -1 do
-        self.Windows[i]:Destroy()
+        local window = self.Windows[i]
+        if window and not window._destroyed then
+            window:Destroy()
+        end
     end
+
     if self.Tooltip then self.Tooltip:Destroy() end
     if self.GlobalThemeManager then self.GlobalThemeManager:Destroy() end
-    if self.InputManager then self.InputManager:Destroy() end
     if self.Overlay then self.Overlay:Destroy() end
+    if self.InputManager then self.InputManager:Destroy() end
     if self.Animation then self.Animation:Destroy() end
     if self.ScreenGui then self.ScreenGui:Destroy() end
+
+    table.clear(self.Windows)
+    table.clear(self.Notifications)
+    table.clear(self.Dialogs)
     table.clear(self.Flags)
     table.clear(self._flagBindings)
+    self._initialized = false
 end
 
 return Note
