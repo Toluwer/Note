@@ -14,6 +14,10 @@ local Label = require("src/Components/Label")
 local Paragraph = require("src/Components/Paragraph")
 local Divider = require("src/Components/Divider")
 local ThemeSwitcher = require("src/Components/ThemeSwitcher")
+local ProgressBar = require("src/Components/ProgressBar")
+local DataTable = require("src/Components/DataTable")
+local ContextMenu = require("src/Components/ContextMenu")
+local CommandPalette = require("src/Components/CommandPalette")
 
 local Section = {}
 Section.__index = Section
@@ -334,6 +338,12 @@ function Section:CreateParagraph(config) return Paragraph.new(self, config) end
 function Section:CreateDivider(config) return Divider.new(self, config) end
 function Section:CreateThemeSwitcher(config) return ThemeSwitcher.new(self, config) end
 function Section:CreateThemeButtons(config) return ThemeSwitcher.new(self, config) end
+function Section:CreateProgressBar(config) return ProgressBar.new(self, config) end
+function Section:CreateProgress(config) return ProgressBar.new(self, config) end
+function Section:CreateDataTable(config) return DataTable.new(self, config) end
+function Section:CreateTable(config) return DataTable.new(self, config) end
+function Section:CreateContextMenu(config) return ContextMenu.new(self, config) end
+function Section:CreateCommandPalette(config) return CommandPalette.new(self, config) end
 
 function Section:Destroy()
     if self._destroyed then return end
