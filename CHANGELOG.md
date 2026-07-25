@@ -4,6 +4,13 @@ All notable changes to Note are documented here.
 
 ## Unreleased
 
+### Added
+
+- `Section:CreateProgressBar` and `Section:CreateProgress` with determinate, indeterminate, ranged, status, prefix, suffix, and flag support
+- `Section:CreateDataTable` and `Section:CreateTable` with sortable columns, row selection, pagination, runtime row replacement, and table-aware search
+- `Section:CreateContextMenu` with anchored and pointer-positioned opening, icons, shortcuts, dividers, checkable items, destructive actions, and arbitrary target binding
+- `Section:CreateCommandPalette` with live filtering, keyboard navigation, shortcuts, configurable commands, and global open-key support
+
 ### Fixed
 
 - Tooltips now size to their actual text instead of always using the maximum width
@@ -26,6 +33,8 @@ All notable changes to Note are documented here.
 
 - Added `Blur` and `BlurSize` dialog options and synchronized the showcase and README
 - Updated the showcase with matching username and password validation examples
+- Added a numeric-input example using the existing `CreateInput` component instead of introducing a duplicate number-input control
+- Expanded `examples/showcase.lua` with progress bar, data table, context menu, and command palette demonstrations
 - Added `examples/dropdowns.lua` with single-select, multi-select, and rapid reversal tests
 
 ## 0.2.3 - 2026-07-24
