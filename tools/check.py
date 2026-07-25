@@ -49,6 +49,41 @@ def main() -> None:
             if not asset.isdigit() or int(asset) <= 0:
                 fail(f"{module} contains invalid asset id {asset}")
 
+    note_source = (SRC / "Note.lua").read_text(encoding="utf-8")
+    required_note_methods = {
+        "Note:CreateWindow",
+        "Note:_registerWindow",
+        "Note:_unregisterWindow",
+        "Note:_registerFlag",
+        "Note:_unregisterFlag",
+        "Note:_layoutNotifications",
+        "Note:_removeNotification",
+        "Note:_removeDialog",
+        "Note:ExportConfig",
+        "Note:ImportConfig",
+        "Note:Destroy",
+    }
+    missing_note_methods = sorted(
+        method for method in required_note_methods
+        if f"function {method}" not in note_source
+    )
+    if missing_note_methods:
+        fail("src/Note.lua is missing runtime methods: " + ", ".join(missing_note_methods))
+
+    section_source = (SRC / "Components" / "Section.lua").read_text(encoding="utf-8")
+    required_section_factories = {
+        "Section:CreateProgressBar",
+        "Section:CreateDataTable",
+        "Section:CreateContextMenu",
+        "Section:CreateCommandPalette",
+    }
+    missing_factories = sorted(
+        method for method in required_section_factories
+        if f"function {method}" not in section_source
+    )
+    if missing_factories:
+        fail("Section.lua is missing advanced factories: " + ", ".join(missing_factories))
+
     bundler = load_bundler()
     expected = bundler.build()
     before = BUNDLE.read_text(encoding="utf-8") if BUNDLE.exists() else None
@@ -69,6 +104,7 @@ def main() -> None:
         "Button", "Toggle", "Slider", "Input", "Dropdown", "Keybind",
         "Colorpicker", "Label", "Paragraph", "Divider", "Notification",
         "Dialog", "Tooltip", "Window", "Tab", "Section", "ThemeSwitcher",
+        "ProgressBar", "DataTable", "ContextMenu", "CommandPalette",
     }
     component_names = {path.stem for path in (SRC / "Components").glob("*.lua")}
     missing = required - component_names
