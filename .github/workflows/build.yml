@@ -1,13 +1,10 @@
-name: Build distribution
+name: Build high-resolution previews
 
 on:
   push:
     branches:
       - main
     paths:
-      - "src/**"
-      - "tools/bundle.py"
-      - "tools/check.py"
       - ".github/workflows/build.yml"
   workflow_dispatch:
 
@@ -15,28 +12,80 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-previews:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Generate and verify distribution
+      - name: Verify distribution
         run: |
           python tools/bundle.py
           python tools/check.py
 
-      - name: Commit generated main.lua
+      - name: Install browser renderer
+        run: |
+          python -m pip install --disable-pip-version-check playwright pillow
+          python -m playwright install --with-deps chromium
+
+      - name: Render high-resolution previews
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          from playwright.sync_api import sync_playwright
+
+          preview = Path("preview")
+          html = (preview / "index.html").read_text(encoding="utf-8")
+
+          with sync_playwright() as playwright:
+              browser = playwright.chromium.launch(headless=True)
+              for theme in ("dark", "light"):
+                  page = browser.new_page(
+                      viewport={"width": 820, "height": 620},
+                      device_scale_factor=4,
+                  )
+                  page.set_content(html, wait_until="load")
+                  page.evaluate(
+                      "theme => { setTheme(theme); document.body.classList.add('capture'); }",
+                      theme,
+                  )
+                  page.wait_for_timeout(300)
+                  png_path = preview / f"{theme}.png"
+                  page.screenshot(
+                      path=str(png_path),
+                      full_page=True,
+                      animations="disabled",
+                  )
+                  page.close()
+
+                  with Image.open(png_path) as image:
+                      image.convert("RGB").save(
+                          preview / f"{theme}.webp",
+                          "WEBP",
+                          quality=92,
+                          method=6,
+                      )
+                  png_path.unlink()
+              browser.close()
+          PY
+
+      - name: Remove preview source and restore workflow
+        run: |
+          rm -f preview/index.html preview/README.md
+          git show HEAD^:.github/workflows/build.yml > .github/workflows/build.yml
+
+      - name: Commit high-resolution images
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add main.lua
-          if ! git diff --cached --quiet; then
-            git commit -m "build: regenerate main.lua"
-            git push
-          fi
+          git add -A
+          git commit -m "docs: keep high-resolution preview images only"
+          git push
