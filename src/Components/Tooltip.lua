@@ -1,6 +1,7 @@
 local Utilities = require("src/Core/Utilities")
 local Maid = require("src/Core/Maid")
 local Layout = require("src/Core/Layout")
+local TextMeasure = require("src/Internal/TextMeasure")
 
 local Tooltip = {}
 Tooltip.__index = Tooltip
@@ -42,55 +43,102 @@ function Tooltip.Bind(library, target, text, themeManager, options)
     options = options or {}
     local maid = Maid.new()
     local popup
+    local popupScale
     local openToken = 0
 
     local function close()
         openToken += 1
         if popup then
             library.Animation:Cancel(popup)
+            if popupScale then
+                library.Animation:Cancel(popupScale)
+            end
             popup:Destroy()
             popup = nil
+            popupScale = nil
         end
     end
 
     local function open()
-        if popup or not target.Parent or tostring(text or "") == "" then
+        local tooltipText = tostring(text or "")
+        if popup or not target.Parent or tooltipText == "" then
             return
         end
-        popup = Utilities.Create("Frame", {
+
+        local font = Enum.Font.Gotham
+        local textSize = 11
+        local horizontalPadding = 18
+        local verticalPadding = 12
+        local maxWidth = math.max(80, tonumber(options.MaxWidth) or 240)
+        local minWidth = math.max(0, tonumber(options.MinWidth) or 0)
+        local maxLabelWidth = math.max(1, maxWidth - horizontalPadding)
+        local minLabelWidth = math.max(1, minWidth - horizontalPadding)
+        local naturalSize = TextMeasure.Get(tooltipText, textSize, font, 10000)
+        local labelWidth = math.clamp(math.ceil(naturalSize.X) + 2, minLabelWidth, maxLabelWidth)
+        local measuredSize = TextMeasure.Get(tooltipText, textSize, font, labelWidth)
+        local labelHeight = math.max(14, math.ceil(measuredSize.Y))
+        local popupWidth = labelWidth + horizontalPadding
+        local popupHeight = labelHeight + verticalPadding
+
+        popup = Utilities.Create("CanvasGroup", {
             Name = "Tooltip",
             BackgroundColor3 = Color3.new(),
             BorderSizePixel = 0,
-            AutomaticSize = Enum.AutomaticSize.XY,
-            Size = UDim2.fromOffset(0, 0),
+            Size = UDim2.fromOffset(popupWidth, popupHeight),
+            GroupTransparency = 1,
             ZIndex = 310,
             Parent = library.Overlay:GetLayer("Tooltips"),
         })
         Utilities.Corner(popup, library.Tokens.Radius.Small)
-        Utilities.Padding(popup, 9, 9, 6, 6)
         local stroke = Utilities.Stroke(popup, Color3.new(), 1, 0)
-        local label = Utilities.Create("TextLabel", {
-            BackgroundTransparency = 1,
-            AutomaticSize = Enum.AutomaticSize.XY,
-            Font = Enum.Font.Gotham,
-            Text = tostring(text),
-            TextSize = 11,
-            TextWrapped = true,
-            Size = UDim2.fromOffset(options.MaxWidth or 220, 0),
-            AutomaticSize = Enum.AutomaticSize.Y,
-            ZIndex = 311,
+        stroke.ZIndex = 311
+
+        popupScale = Utilities.Create("UIScale", {
+            Scale = 0.97,
             Parent = popup,
         })
-        themeManager:Bind(popup, { BackgroundColor3 = "SurfaceElevated", BackgroundTransparency = "ElevatedTransparency" })
-        themeManager:Bind(stroke, { Color = "Border", Transparency = "BorderTransparency" })
+
+        local label = Utilities.Create("TextLabel", {
+            BackgroundTransparency = 1,
+            Position = UDim2.fromOffset(horizontalPadding / 2, verticalPadding / 2),
+            Size = UDim2.fromOffset(labelWidth, labelHeight),
+            Font = font,
+            Text = tooltipText,
+            TextSize = textSize,
+            TextWrapped = true,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            ZIndex = 312,
+            Parent = popup,
+        })
+
+        themeManager:Bind(popup, {
+            BackgroundColor3 = "SurfaceElevated",
+            BackgroundTransparency = "ElevatedTransparency",
+        })
+        themeManager:Bind(stroke, {
+            Color = "Border",
+            Transparency = "BorderTransparency",
+        })
         themeManager:Bind(label, { TextColor3 = "Text" })
-        popup.BackgroundTransparency = 1
-        label.TextTransparency = 1
+
         task.defer(function()
             if popup and popup.Parent then
                 Layout.PositionOverlay(target, popup, library.Overlay.Root)
-                library.Animation:Tween(popup, { BackgroundTransparency = 0 }, library.Tokens.Animation.Fast)
-                library.Animation:Tween(label, { TextTransparency = 0 }, library.Tokens.Animation.Fast)
+                library.Animation:Tween(
+                    popup,
+                    { GroupTransparency = 0 },
+                    library.Tokens.Animation.Fast,
+                    Enum.EasingStyle.Quint,
+                    Enum.EasingDirection.Out
+                )
+                library.Animation:Tween(
+                    popupScale,
+                    { Scale = 1 },
+                    library.Tokens.Animation.Fast,
+                    Enum.EasingStyle.Quint,
+                    Enum.EasingDirection.Out
+                )
             end
         end)
     end
