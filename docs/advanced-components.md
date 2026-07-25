@@ -136,9 +136,9 @@ Calling `Bind(guiObject)` opens the menu at the pointer when that object receive
 local Palette = Section:CreateCommandPalette({
     Name = "Command Palette",
     Description = "Search and execute interface commands.",
-    OpenKey = Enum.KeyCode.F12,
+    OpenKey = Enum.KeyCode.Comma,
     Modifier = false,
-    Shortcut = "F12",
+    Shortcut = ", / <",
     Placeholder = "Search commands",
     CloseOnExecute = true,
     Commands = {
@@ -176,4 +176,4 @@ Palette:GetCommands()
 Palette:Destroy()
 ```
 
-The default shortcut is `F12`. While open, use Up and Down to move through results, Enter to execute, and Escape to close.
+The default shortcut is the comma/less-than key (`Enum.KeyCode.Comma`). While open, use Up and Down to move through results, Enter to execute, and Escape to close.

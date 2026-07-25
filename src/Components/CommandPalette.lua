@@ -11,10 +11,12 @@ setmetatable(CommandPalette, { __index = BaseComponent })
 
 local function shortcutText(config)
     if config.Shortcut then return tostring(config.Shortcut) end
-    local key = config.OpenKey or Enum.KeyCode.F12
+    local key = config.OpenKey or Enum.KeyCode.Comma
     local modifier = config.Modifier
     if modifier == nil then modifier = false end
-    if modifier == false then return key.Name end
+    if modifier == false then
+        return key == Enum.KeyCode.Comma and ", / <" or key.Name
+    end
     return "Ctrl + " .. key.Name
 end
 
@@ -39,7 +41,7 @@ function CommandPalette.new(section, config)
     self.Commands = table.clone(config.Commands or {})
     self.Placeholder = tostring(config.Placeholder or "Search commands")
     self.EmptyText = tostring(config.EmptyText or "No matching commands")
-    self.OpenKey = config.OpenKey or Enum.KeyCode.F12
+    self.OpenKey = config.OpenKey or Enum.KeyCode.Comma
     self.Modifier = config.Modifier
     if self.Modifier == nil then self.Modifier = false end
     self.Shortcut = shortcutText(config)

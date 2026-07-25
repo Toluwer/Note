@@ -33,7 +33,7 @@ All notable changes to Note are documented here.
 
 ### Changed
 
-- Changed the command palette default shortcut from `Ctrl + P` to `F12`
+- Changed the command palette default shortcut from `Ctrl + P` to the comma/less-than key (`Enum.KeyCode.Comma`)
 - Added `Blur` and `BlurSize` dialog options and synchronized the showcase and README
 - Updated the showcase with matching username and password validation examples
 - Added `examples/dropdowns.lua` with single-select, multi-select, and rapid reversal tests

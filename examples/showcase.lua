@@ -236,8 +236,9 @@ Advanced:CreateContextMenu({
 
 Advanced:CreateCommandPalette({
     Name = "Command Palette",
-    Description = "Search and execute actions with F12.",
-    OpenKey = Enum.KeyCode.F12,
+    Description = "Search and execute actions with the , / < key.",
+    OpenKey = Enum.KeyCode.Comma,
+    Shortcut = ", / <",
     Modifier = false,
     Commands = {
         {
