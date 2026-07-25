@@ -30,13 +30,23 @@ jobs:
         run: |
           curl --fail --location --silent --show-error \
             "https://raw.githubusercontent.com/Toluwer/Note/c577b74d173ed64ddd06d377ff29a7b5b0ac7701/preview/index.html" \
-            --output /tmp/note-preview.html
+            --output /tmp/note-preview-wrapper.html
 
           python - <<'PY'
           from pathlib import Path
+          import base64
+          import gzip
+          import re
           from playwright.sync_api import sync_playwright
 
-          html = Path('/tmp/note-preview.html').read_text(encoding='utf-8')
+          wrapper = Path('/tmp/note-preview-wrapper.html').read_text(encoding='utf-8')
+          match = re.search(r'const b="([A-Za-z0-9+/=]+)"', wrapper)
+          if match:
+              html = gzip.decompress(base64.b64decode(match.group(1))).decode('utf-8')
+          else:
+              html = wrapper
+
+          assert 'class="note-window"' in html, 'Decoded HTML is missing the Note window'
           output = Path('preview')
           output.mkdir(exist_ok=True)
 
@@ -49,10 +59,6 @@ jobs:
                   )
                   page.set_content(html, wait_until='load')
                   page.wait_for_selector('main.note-window', state='visible', timeout=15000)
-                  page.wait_for_function(
-                      "() => typeof setTheme === 'function' && document.body.innerHTML.length > 15000",
-                      timeout=15000,
-                  )
                   page.evaluate(
                       "theme => { setTheme(theme); document.body.classList.add('capture'); }",
                       theme,
