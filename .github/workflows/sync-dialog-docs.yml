@@ -1,0 +1,103 @@
+name: Synchronize dialog blur documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/sync-dialog-docs.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Update examples and documentation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def patch(path, old, new):
+              file = Path(path)
+              text = file.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"Missing patch target in {path}: {old}")
+              file.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          patch(
+              "README.md",
+              "Frosted glass is enabled by default using translucent UI surfaces only. Note does not create a `BlurEffect`, modify `Lighting`, or blur the game view.",
+              "Frosted glass is enabled by default using translucent UI surfaces only and does not blur the game view. Modal dialogs are the sole exception: while a dialog is open, Note uses one temporary dialog-owned `BlurEffect`, then removes it as the dialog closes.",
+          )
+          patch(
+              "README.md",
+              '    Icon = "circle-alert",\n    Buttons = {',
+              '    Icon = "circle-alert",\n    Blur = true,\n    BlurSize = 14,\n    Buttons = {',
+          )
+          patch(
+              "README.md",
+              "Only the active dialog captures interaction. Escape and the close icon dismiss it.",
+              "Only the active dialog captures interaction. Its fullscreen click blocker is visually transparent. By default the 3D scene blurs smoothly while the dialog is open and returns to sharp focus as it closes. Set `Blur = false` to disable the effect or set `BlurSize` from `0` to `56`. Escape and the close icon dismiss it.",
+          )
+          patch(
+              "README.md",
+              "Destroying Note removes every Note-owned window, overlay, notification, dialog, global input connection, theme binding, tween, and the owned root GUI.",
+              "Destroying Note removes every Note-owned window, overlay, notification, dialog, temporary dialog blur, global input connection, theme binding, tween, and the owned root GUI.",
+          )
+
+          patch(
+              "examples/showcase.lua",
+              '    Description = "Shows a modal confirmation.",',
+              '    Description = "Shows a modal confirmation with temporary scene blur.",',
+          )
+          patch(
+              "examples/showcase.lua",
+              '            Icon = "circle-alert",\n            Buttons = {',
+              '            Icon = "circle-alert",\n            Blur = true,\n            BlurSize = 14,\n            Buttons = {',
+          )
+
+          changelog = Path("CHANGELOG.md")
+          text = changelog.read_text(encoding="utf-8")
+          fixed = "### Fixed\n\n"
+          fixed_addition = (
+              "### Fixed\n\n"
+              "- Removed the dark visual scrim behind modal dialogs\n"
+              "- Dialogs now use one temporary blur that animates in and out\n"
+              "- Rapid dialog replacement reuses the blur without stacking effects\n"
+              "- Dialog panels animate through fixed-geometry scale and group transparency\n"
+          )
+          if fixed not in text:
+              raise SystemExit("Missing changelog Fixed section")
+          text = text.replace(fixed, fixed_addition, 1)
+
+          changed = "### Changed\n\n"
+          changed_addition = (
+              "### Changed\n\n"
+              "- Added `Blur` and `BlurSize` dialog options and synchronized the showcase and README\n"
+          )
+          if changed not in text:
+              raise SystemExit("Missing changelog Changed section")
+          text = text.replace(changed, changed_addition, 1)
+          changelog.write_text(text, encoding="utf-8")
+
+          Path(".github/workflows/sync-dialog-docs.yml").unlink()
+          PY
+
+      - name: Verify repository
+        run: python tools/check.py
+
+      - name: Commit updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: document temporary dialog blur"
+          git push
