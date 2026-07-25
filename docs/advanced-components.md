@@ -136,9 +136,9 @@ Calling `Bind(guiObject)` opens the menu at the pointer when that object receive
 local Palette = Section:CreateCommandPalette({
     Name = "Command Palette",
     Description = "Search and execute interface commands.",
-    OpenKey = Enum.KeyCode.P,
-    Modifier = Enum.KeyCode.LeftControl,
-    Shortcut = "Ctrl + P",
+    OpenKey = Enum.KeyCode.F12,
+    Modifier = false,
+    Shortcut = "F12",
     Placeholder = "Search commands",
     CloseOnExecute = true,
     Commands = {
@@ -176,4 +176,4 @@ Palette:GetCommands()
 Palette:Destroy()
 ```
 
-While open, use Up and Down to move through results, Enter to execute, and Escape to close. Set `Modifier = false` to use the open key without a modifier.
+The default shortcut is `F12`. While open, use Up and Down to move through results, Enter to execute, and Escape to close.

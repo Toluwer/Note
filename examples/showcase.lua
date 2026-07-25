@@ -236,8 +236,9 @@ Advanced:CreateContextMenu({
 
 Advanced:CreateCommandPalette({
     Name = "Command Palette",
-    Description = "Search and execute actions with Ctrl + P.",
-    OpenKey = Enum.KeyCode.P,
+    Description = "Search and execute actions with F12.",
+    OpenKey = Enum.KeyCode.F12,
+    Modifier = false,
     Commands = {
         {
             Name = "Toggle interface",
