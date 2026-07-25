@@ -135,6 +135,15 @@ Data:CreateInput({
     end,
 })
 
+Data:CreateInput({
+    Name = "Port",
+    Description = "Numeric input uses the existing input component.",
+    Placeholder = "8080",
+    Numeric = true,
+    Default = "8080",
+    CharacterLimit = 5,
+})
+
 Data:CreateDropdown({
     Name = "Mode",
     Description = "Searchable overlay dropdown.",
@@ -173,6 +182,123 @@ Data:CreateKeybind({
     end,
     Changed = function(key)
         print("Key changed:", key)
+    end,
+})
+
+local Advanced = General:CreateSection({
+    Name = "Advanced",
+    Description = "Commands, menus, progress, and structured data.",
+    Icon = "layers",
+    Collapsible = true,
+})
+
+local Progress = Advanced:CreateProgressBar({
+    Name = "Build Progress",
+    Description = "Determinate and indeterminate progress states.",
+    Minimum = 0,
+    Maximum = 100,
+    Value = 68,
+    Suffix = "%",
+    ShowValue = true,
+    Callback = function(value)
+        print("Progress:", value)
+    end,
+})
+
+Advanced:CreateContextMenu({
+    Name = "Context Menu",
+    Description = "Supports icons, shortcuts, checkable items, and destructive actions.",
+    Items = {
+        {
+            Name = "Refresh",
+            Icon = "refresh-cw",
+            Shortcut = "Ctrl R",
+            Callback = function()
+                Progress:SetValue(100)
+            end,
+        },
+        {
+            Name = "Keep logs",
+            Checkable = true,
+            Checked = true,
+        },
+        { Type = "Divider" },
+        {
+            Name = "Clear output",
+            Icon = "trash-2",
+            Destructive = true,
+            Callback = function()
+                Progress:SetValue(0)
+            end,
+        },
+    },
+})
+
+Advanced:CreateCommandPalette({
+    Name = "Command Palette",
+    Description = "Search and execute actions with Ctrl + P.",
+    OpenKey = Enum.KeyCode.P,
+    Commands = {
+        {
+            Name = "Toggle interface",
+            Description = "Show or hide the Note window.",
+            Icon = "panel-left",
+            Shortcut = "RightShift",
+            Keywords = { "window", "visibility" },
+            Callback = function()
+                Window:Toggle()
+            end,
+        },
+        {
+            Name = "Complete progress",
+            Description = "Set build progress to 100 percent.",
+            Icon = "check",
+            Keywords = { "build", "progress" },
+            Callback = function()
+                Progress:SetValue(100)
+            end,
+        },
+        {
+            Name = "Switch to light theme",
+            Description = "Apply the built-in light theme.",
+            Icon = "sun",
+            Callback = function()
+                Window:SetTheme("Light")
+            end,
+        },
+        {
+            Name = "Switch to dark theme",
+            Description = "Apply the built-in dark theme.",
+            Icon = "moon",
+            Callback = function()
+                Window:SetTheme("Dark")
+            end,
+        },
+    },
+})
+
+Advanced:CreateDataTable({
+    Name = "Runtime Tasks",
+    Description = "Sortable, selectable rows with built-in pagination.",
+    Columns = {
+        { Key = "name", Name = "Task", Width = 1.6 },
+        { Key = "status", Name = "Status", Width = 1 },
+        { Key = "duration", Name = "Time", Width = 0.7 },
+    },
+    Rows = {
+        { id = 1, name = "Load modules", status = "Complete", duration = "18 ms" },
+        { id = 2, name = "Bind themes", status = "Complete", duration = "7 ms" },
+        { id = 3, name = "Create overlays", status = "Running", duration = "12 ms" },
+        { id = 4, name = "Register input", status = "Pending", duration = "—" },
+        { id = 5, name = "Restore flags", status = "Pending", duration = "—" },
+        { id = 6, name = "Show window", status = "Pending", duration = "—" },
+    },
+    RowKey = "id",
+    PageSize = 4,
+    Sortable = true,
+    Selectable = true,
+    Callback = function(row)
+        if row then print("Selected task:", row.name) end
     end,
 })
 
