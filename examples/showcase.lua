@@ -49,7 +49,7 @@ Actions:CreateButton({
 
 Actions:CreateButton({
     Name = "Open Dialog",
-    Description = "Shows a modal confirmation.",
+    Description = "Shows a modal confirmation with temporary scene blur.",
     Icon = "circle-alert",
     Style = "Secondary",
     Callback = function()
@@ -57,6 +57,8 @@ Actions:CreateButton({
             Title = "Reset settings?",
             Content = "This demonstration does not change any external state.",
             Icon = "circle-alert",
+            Blur = true,
+            BlurSize = 14,
             Buttons = {
                 { Name = "Cancel", Style = "Secondary" },
                 {

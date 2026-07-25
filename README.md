@@ -469,7 +469,7 @@ A custom table can also be passed directly to `Window:SetTheme`. Missing tokens 
 
 ## Frosted glass
 
-Frosted glass is enabled by default using translucent UI surfaces only. Note does not create a `BlurEffect`, modify `Lighting`, or blur the game view.
+Frosted glass is enabled by default using translucent UI surfaces only and does not blur the game view. Modal dialogs are the sole exception: while a dialog is open, Note uses one temporary dialog-owned `BlurEffect`, then removes it as the dialog closes.
 
 ```lua
 Note:SetFrostedGlass(true)
@@ -521,6 +521,8 @@ Window:Dialog({
     Title = "Reset settings?",
     Content = "This action cannot be undone.",
     Icon = "circle-alert",
+    Blur = true,
+    BlurSize = 14,
     Buttons = {
         { Name = "Cancel", Style = "Secondary" },
         {
@@ -537,7 +539,7 @@ Window:Dialog({
 })
 ```
 
-Only the active dialog captures interaction. Escape and the close icon dismiss it.
+Only the active dialog captures interaction. Its fullscreen click blocker is visually transparent. By default the 3D scene blurs smoothly while the dialog is open and returns to sharp focus as it closes. Set `Blur = false` to disable the effect or set `BlurSize` from `0` to `56`. Escape and the close icon dismiss it.
 
 ## Tooltips
 
@@ -591,7 +593,7 @@ Window:Destroy()
 Note:Destroy()
 ```
 
-Destroying Note removes every Note-owned window, overlay, notification, dialog, global input connection, theme binding, tween, and the owned root GUI.
+Destroying Note removes every Note-owned window, overlay, notification, dialog, temporary dialog blur, global input connection, theme binding, tween, and the owned root GUI.
 
 ## Compatibility
 

@@ -6,6 +6,10 @@ All notable changes to Note are documented here.
 
 ### Fixed
 
+- Removed the dark visual scrim behind modal dialogs
+- Dialogs now use one temporary blur that animates in and out
+- Rapid dialog replacement reuses the blur without stacking effects
+- Dialog panels animate through fixed-geometry scale and group transparency
 - Input validation errors now clear immediately when the typed value becomes valid
 - Live validation recovery applies to both normal and password fields
 - Programmatic `SetValue` calls clear an existing error when the new value is valid
@@ -18,6 +22,7 @@ All notable changes to Note are documented here.
 
 ### Changed
 
+- Added `Blur` and `BlurSize` dialog options and synchronized the showcase and README
 - Updated the showcase with matching username and password validation examples
 - Added `examples/dropdowns.lua` with single-select, multi-select, and rapid reversal tests
 
