@@ -1,0 +1,327 @@
+name: Fix palette overlays
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/fix-palette-overlays.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch command palette and color picker
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          command_path = Path('src/Components/CommandPalette.lua')
+          command = command_path.read_text()
+          old_visible = '''    self._selectedIndex = 1
+    self._filtered = {}
+    self._resultRows = {}
+    self:AddTextBlock(-170)
+
+    local action = Utilities.Create("TextButton", {
+        Name = "OpenPalette",
+        AutoButtonColor = false,
+        BorderSizePixel = 0,
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, -10, 0.5, 0),
+        Size = UDim2.fromOffset(134, 34),
+        Text = "",
+        Parent = self.Frame,
+    })
+    Utilities.Corner(action, self.Library.Tokens.Radius.Medium)
+    local actionStroke = Utilities.Stroke(action, Color3.new(), 1, 0)
+    self.Window.ThemeManager:Bind(action, {
+        BackgroundColor3 = "SurfaceElevated",
+        BackgroundTransparency = "ElevatedTransparency",
+    })
+    self.Window.ThemeManager:Bind(actionStroke, {
+        Color = "Border",
+        Transparency = "BorderTransparency",
+    })
+
+    local searchIcon = Icons.Create({ Name = config.Icon or "search", Size = 15, Parent = action })
+    searchIcon.Instance.AnchorPoint = Vector2.new(0, 0.5)
+    searchIcon.Instance.Position = UDim2.new(0, 10, 0.5, 0)
+    self.Window.ThemeManager:Bind(searchIcon.Instance, { ImageColor3 = "TextSecondary" })
+    self.Maid:Give(searchIcon)
+
+    local shortcut = Utilities.Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Position = UDim2.fromOffset(32, 0),
+        Size = UDim2.new(1, -40, 1, 0),
+        Font = Enum.Font.Code,
+        Text = self.Shortcut,
+        TextSize = 10,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        Parent = action,
+    })
+    self.Window.ThemeManager:Bind(shortcut, { TextColor3 = "TextMuted" })
+
+    self.Action = action
+    self.Maid:Give(action.Activated:Connect(function()
+        if not self.Disabled then self:Toggle() end
+    end))
+'''
+          new_hidden = '''    self._selectedIndex = 1
+    self._filtered = {}
+    self._resultRows = {}
+
+    -- Command palettes are headless controls. They occupy no section row and
+    -- create their overlay only after the configured shortcut is pressed.
+    self.Visible = false
+    self.Frame.Visible = false
+    self.Frame.Size = UDim2.fromOffset(0, 0)
+    if self.Stroke then
+        self.Stroke.Enabled = false
+    end
+'''
+          assert old_visible in command, 'command palette visible control block not found'
+          command = command.replace(old_visible, new_hidden, 1)
+          old_key = '        if processed or self.Disabled or input.KeyCode ~= self.OpenKey then return end\n'
+          new_key = '''        if self.Disabled or input.KeyCode ~= self.OpenKey then return end
+        -- Roblox may mark punctuation keys as processed even when no TextBox
+        -- owns the input. Only suppress the shortcut while the user is typing.
+        if UserInputService:GetFocusedTextBox() then return end
+'''
+          assert old_key in command, 'command palette processed-input guard not found'
+          command = command.replace(old_key, new_key, 1)
+          old_get = '''function CommandPalette:GetCommands()
+    return table.clone(self.Commands)
+end
+
+function CommandPalette:Destroy()
+'''
+          new_get = '''function CommandPalette:GetCommands()
+    return table.clone(self.Commands)
+end
+
+function CommandPalette:SetVisible(_value)
+    -- Intentionally headless: visibility controls only the popup through
+    -- Open, Close, and Toggle, never a row inside the owning section.
+    self.Visible = false
+    if self.Frame then self.Frame.Visible = false end
+    return self
+end
+
+function CommandPalette:Destroy()
+'''
+          assert old_get in command, 'command palette method insertion point not found'
+          command = command.replace(old_get, new_get, 1)
+          command_path.write_text(command)
+
+          color_path = Path('src/Components/Colorpicker.lua')
+          color = color_path.read_text()
+          old_init = '''    self.AllowAlpha = config.AllowAlpha == true or config.ShowAlpha == true
+    self.Hue, self.Saturation, self.Brightness = self.Value:ToHSV()
+'''
+          new_init = '''    self.AllowAlpha = config.AllowAlpha == true or config.ShowAlpha == true
+    self.Hue, self.Saturation, self.Brightness = self.Value:ToHSV()
+    self._popupRevision = 0
+'''
+          assert old_init in color, 'color picker initialization point not found'
+          color = color.replace(old_init, new_init, 1)
+
+          old_popup = '''    local popup = Utilities.Create("Frame", {
+        Name = "ColorpickerPopup",
+        BackgroundColor3 = Color3.new(),
+        BorderSizePixel = 0,
+        Size = UDim2.fromOffset(320, height),
+        ZIndex = 205,
+        Parent = self.Library.Overlay:GetLayer("Popovers"),
+    })
+'''
+          new_popup = '''    self._popupRevision += 1
+    local popup = Utilities.Create("CanvasGroup", {
+        Name = "ColorpickerPopup",
+        BackgroundColor3 = Color3.new(),
+        BorderSizePixel = 0,
+        Size = UDim2.fromOffset(320, height),
+        GroupTransparency = 1,
+        ClipsDescendants = true,
+        ZIndex = 205,
+        Parent = self.Library.Overlay:GetLayer("Popovers"),
+    })
+'''
+          assert old_popup in color, 'color picker popup creation block not found'
+          color = color.replace(old_popup, new_popup, 1)
+          color = color.replace('    maid:Give(popup)\n', '', 1)
+
+          old_stroke = '''    self.Window.ThemeManager:Bind(popupStroke, { Color = "Border", Transparency = "BorderTransparency" })
+
+    local title = Utilities.Create("TextLabel", {
+'''
+          new_stroke = '''    self.Window.ThemeManager:Bind(popupStroke, { Color = "Border", Transparency = "BorderTransparency" })
+    local popupScale = Utilities.Create("UIScale", {
+        Scale = 0.965,
+        Parent = popup,
+    })
+
+    local title = Utilities.Create("TextLabel", {
+'''
+          assert old_stroke in color, 'color picker scale insertion point not found'
+          color = color.replace(old_stroke, new_stroke, 1)
+
+          old_refs = '''    self._popup = popup
+    self._sv = sv
+'''
+          new_refs = '''    self._popup = popup
+    self._popupScale = popupScale
+    self._sv = sv
+'''
+          assert old_refs in color, 'color picker popup reference block not found'
+          color = color.replace(old_refs, new_refs, 1)
+
+          old_open_animation = '''    reposition()
+    maid:Give(RunService.Heartbeat:Connect(reposition))
+    maid:Give(self.Library.InputManager:RegisterOutside({ popup, self.Preview }, function() self:Close() end))
+    maid:Give(self.Library.InputManager:PushEscape(function() self:Close() end))
+    popup.BackgroundTransparency = 1
+    popup.Size = UDim2.fromOffset(300, height - 18)
+    self.Library.Animation:Tween(popup, {
+        BackgroundTransparency = 0,
+        Size = UDim2.fromOffset(320, height),
+    }, self.Library.Tokens.Animation.Normal)
+    return self
+end
+
+function Colorpicker:Close()
+    if not self._popup then return self end
+    local popup = self._popup
+    self._popup = nil
+    self.Library.Animation:Tween(popup, {
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(300, math.max(260, popup.Size.Y.Offset - 18)),
+    }, self.Library.Tokens.Animation.Fast)
+    local popupMaid = self._popupMaid
+    self._popupMaid = nil
+    task.delay(self.Library.Tokens.Animation.Fast, function()
+        if popupMaid then
+            popupMaid:Destroy()
+        end
+        if popup and popup.Parent then
+            popup:Destroy()
+        end
+    end)
+    self._fields = nil
+    self._alphaGradient = nil
+    return self
+end
+'''
+          new_open_animation = '''    reposition()
+    maid:Replace("AnchorTracking", RunService.Heartbeat:Connect(reposition))
+    maid:Give(self.Library.InputManager:RegisterOutside({ popup, self.Preview }, function() self:Close() end))
+    maid:Give(self.Library.InputManager:PushEscape(function() self:Close() end))
+
+    self.Library.Animation:Cancel(popup)
+    self.Library.Animation:Cancel(popupScale)
+    self.Library.Animation:Tween(
+        popup,
+        { GroupTransparency = 0 },
+        self.Library.Tokens.Animation.Normal,
+        Enum.EasingStyle.Quint,
+        Enum.EasingDirection.Out
+    )
+    self.Library.Animation:Tween(
+        popupScale,
+        { Scale = 1 },
+        self.Library.Tokens.Animation.Normal,
+        Enum.EasingStyle.Quint,
+        Enum.EasingDirection.Out
+    )
+    return self
+end
+
+function Colorpicker:Close()
+    if not self._popup then return self end
+
+    local popup = self._popup
+    local popupScale = self._popupScale
+    local popupMaid = self._popupMaid
+    self._popup = nil
+    self._popupScale = nil
+    self._popupMaid = nil
+    self._popupRevision += 1
+
+    -- Stop tracking and dismissal callbacks before animating. The popup keeps
+    -- its last anchored position while its fixed geometry scales and fades.
+    if popupMaid then popupMaid:Destroy() end
+
+    self.Library.Animation:Cancel(popup)
+    if popupScale then self.Library.Animation:Cancel(popupScale) end
+
+    local duration = self.Library.Tokens.Animation.Normal
+    local fade = self.Library.Animation:Tween(
+        popup,
+        { GroupTransparency = 1 },
+        duration,
+        Enum.EasingStyle.Quint,
+        Enum.EasingDirection.InOut
+    )
+    if popupScale then
+        self.Library.Animation:Tween(
+            popupScale,
+            { Scale = 0.965 },
+            duration,
+            Enum.EasingStyle.Quint,
+            Enum.EasingDirection.InOut
+        )
+    end
+
+    local finalized = false
+    local function finalize()
+        if finalized then return end
+        finalized = true
+        if popup and popup.Parent then popup:Destroy() end
+    end
+
+    if fade then
+        local connection
+        connection = fade.Completed:Connect(function()
+            if connection then connection:Disconnect() end
+            finalize()
+        end)
+    end
+    task.delay(duration + 0.05, finalize)
+
+    self._fields = nil
+    self._alphaGradient = nil
+    self._alphaBar = nil
+    self._alphaCursor = nil
+    return self
+end
+'''
+          assert old_open_animation in color, 'color picker animation block not found'
+          color = color.replace(old_open_animation, new_open_animation, 1)
+          color_path.write_text(color)
+
+          docs_path = Path('docs/ADVANCED_COMPONENTS.md')
+          docs = docs_path.read_text()
+          marker = 'While open, use Up and Down to move through results, Enter to execute, and Escape to close. Set `Modifier = false` to use the open key without a modifier.'
+          replacement = 'The command palette is headless and does not render a row inside its section. It appears only when its shortcut is pressed or when `Open()` is called. While open, use Up and Down to move through results, Enter to execute, and Escape to close. Set `Modifier = false` to use the open key without a modifier.'
+          assert marker in docs, 'advanced component command palette note not found'
+          docs_path.write_text(docs.replace(marker, replacement, 1))
+
+          changelog_path = Path('CHANGELOG.md')
+          changelog = changelog_path.read_text()
+          heading = '## [Unreleased]\n'
+          note = '- Made command palettes headless overlay controls that appear only from their shortcut or API, and allow punctuation shortcuts when Roblox marks the input as processed.\n- Reworked color-picker open and close transitions to use fixed geometry, interruption-safe scale and fade animation, and immediate dismissal-handler cleanup.\n'
+          assert heading in changelog, 'unreleased changelog heading not found'
+          changelog_path.write_text(changelog.replace(heading, heading + note, 1))
+          PY
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/Components/CommandPalette.lua src/Components/Colorpicker.lua docs/ADVANCED_COMPONENTS.md CHANGELOG.md
+          git commit -m "fix: make palettes headless and smooth overlay closing"
+          git push
