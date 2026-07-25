@@ -6,6 +6,8 @@ All notable changes to Note are documented here.
 
 ### Fixed
 
+- Tooltips now size to their actual text instead of always using the maximum width
+- Short tooltip labels stay compact while longer text wraps and grows vertically
 - Removed the dark visual scrim behind modal dialogs
 - Dialogs now use one temporary blur that animates in and out
 - Rapid dialog replacement reuses the blur without stacking effects
