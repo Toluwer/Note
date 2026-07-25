@@ -1,0 +1,102 @@
+name: Render preview screenshots
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/render-preview-raster.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out preview branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Install Chromium renderer
+        run: |
+          python -m pip install --disable-pip-version-check playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Restore HTML source and capture real screenshots
+        run: |
+          curl --fail --location --silent --show-error \
+            "https://raw.githubusercontent.com/Toluwer/Note/c577b74d173ed64ddd06d377ff29a7b5b0ac7701/preview/index.html" \
+            --output /tmp/note-preview.html
+
+          python - <<'PY'
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+
+          html = Path('/tmp/note-preview.html').read_text(encoding='utf-8')
+          output = Path('preview')
+          output.mkdir(exist_ok=True)
+
+          with sync_playwright() as playwright:
+              browser = playwright.chromium.launch(headless=True)
+              for theme in ('dark', 'light'):
+                  page = browser.new_page(
+                      viewport={'width': 820, 'height': 620},
+                      device_scale_factor=4,
+                  )
+                  page.set_content(html, wait_until='load')
+                  page.wait_for_selector('main.note-window', state='visible', timeout=15000)
+                  page.wait_for_function(
+                      "() => typeof setTheme === 'function' && document.body.innerHTML.length > 15000",
+                      timeout=15000,
+                  )
+                  page.evaluate(
+                      "theme => { setTheme(theme); document.body.classList.add('capture'); }",
+                      theme,
+                  )
+                  page.wait_for_timeout(750)
+                  page.screenshot(
+                      path=str(output / f'{theme}.png'),
+                      full_page=True,
+                      animations='disabled',
+                  )
+                  page.close()
+              browser.close()
+          PY
+
+          rm -f preview/dark.svg preview/light.svg
+
+      - name: Verify screenshots are real and distinct
+        run: |
+          python - <<'PY'
+          import hashlib
+          import struct
+          from pathlib import Path
+
+          hashes = []
+          for name in ('dark.png', 'light.png'):
+              path = Path('preview') / name
+              data = path.read_bytes()
+              assert data[:8] == b'\x89PNG\r\n\x1a\n', name
+              width, height = struct.unpack('>II', data[16:24])
+              assert (width, height) == (3280, 2480), (name, width, height)
+              assert len(data) > 300_000, (name, len(data))
+              digest = hashlib.sha256(data).hexdigest()
+              hashes.append(digest)
+              print(f'{name}: {width}x{height}, {len(data)} bytes, {digest}')
+
+          assert hashes[0] != hashes[1], 'Dark and light screenshots are identical'
+          PY
+
+      - name: Commit screenshots to the preview branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add preview/dark.png preview/light.png preview/dark.svg preview/light.svg
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: replace SVG previews with high-resolution browser screenshots"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
