@@ -8,7 +8,8 @@ local layers = {
     Popovers = 200,
     Tooltips = 300,
     Notifications = 400,
-    Dialogs = 500,
+    Modals = 500,
+    Dialogs = 600,
 }
 
 function Overlay.new(screenGui)
