@@ -188,7 +188,7 @@ Data:CreateKeybind({
 local Advanced = General:CreateSection({
     Name = "Advanced",
     Description = "Commands, menus, progress, and structured data.",
-    Icon = "layers",
+    Icon = "menu",
     Collapsible = true,
 })
 
