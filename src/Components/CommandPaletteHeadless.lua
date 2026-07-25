@@ -17,11 +17,27 @@ local function modifierMatches(palette)
     return UserInputService:IsKeyDown(palette.Modifier)
 end
 
+local function getOpenKeys(palette)
+    if palette.OpenKey == Enum.KeyCode.Comma or palette.OpenKey == Enum.KeyCode.LessThan then
+        return { Enum.KeyCode.Comma, Enum.KeyCode.LessThan }
+    end
+    return { palette.OpenKey }
+end
+
+local function keyMatches(palette, keyCode)
+    for _, openKey in ipairs(getOpenKeys(palette)) do
+        if keyCode == openKey then
+            return true
+        end
+    end
+    return false
+end
+
 local function canOpen(palette, input)
     if palette._destroyed or palette.Disabled or palette._isOpen then
         return false
     end
-    if input and input.KeyCode ~= palette.OpenKey then
+    if input and not keyMatches(palette, input.KeyCode) then
         return false
     end
     if UserInputService:GetFocusedTextBox() then
@@ -59,6 +75,7 @@ function CommandPaletteHeadless.new(section, config)
     nextBindingId += 1
     local actionName = "NoteCommandPalette_" .. tostring(nextBindingId)
     local priority = Enum.ContextActionPriority.High.Value + 1000
+    local openKeys = getOpenKeys(palette)
     local bound = pcall(function()
         ContextActionService:BindActionAtPriority(
             actionName,
@@ -73,7 +90,7 @@ function CommandPaletteHeadless.new(section, config)
             end,
             false,
             priority,
-            palette.OpenKey
+            table.unpack(openKeys)
         )
     end)
 
