@@ -9,7 +9,7 @@ local Slider = require("src/Components/Slider")
 local Input = require("src/Components/Input")
 local Dropdown = require("src/Components/Dropdown")
 local Keybind = require("src/Components/Keybind")
-local Colorpicker = require("src/Components/Colorpicker")
+local Colorpicker = require("src/Components/ColorpickerSmooth")
 local Label = require("src/Components/Label")
 local Paragraph = require("src/Components/Paragraph")
 local Divider = require("src/Components/Divider")
@@ -17,7 +17,7 @@ local ThemeSwitcher = require("src/Components/ThemeSwitcher")
 local ProgressBar = require("src/Components/ProgressBar")
 local DataTable = require("src/Components/DataTable")
 local ContextMenu = require("src/Components/ContextMenu")
-local CommandPalette = require("src/Components/CommandPalette")
+local CommandPalette = require("src/Components/CommandPaletteHeadless")
 
 local Section = {}
 Section.__index = Section
