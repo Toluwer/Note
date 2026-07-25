@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - ".github/workflows/render-preview-raster.yml"
+      - "preview/.source.html.gz.b64"
 
 permissions:
   contents: write
@@ -26,30 +27,19 @@ jobs:
           python -m pip install --disable-pip-version-check playwright
           python -m playwright install --with-deps chromium
 
-      - name: Restore HTML source and capture real screenshots
+      - name: Decode HTML and capture real screenshots
         run: |
-          curl --fail --location --silent --show-error \
-            "https://raw.githubusercontent.com/Toluwer/Note/c577b74d173ed64ddd06d377ff29a7b5b0ac7701/preview/index.html" \
-            --output /tmp/note-preview-wrapper.html
-
           python - <<'PY'
           from pathlib import Path
           import base64
           import gzip
-          import re
           from playwright.sync_api import sync_playwright
 
-          wrapper = Path('/tmp/note-preview-wrapper.html').read_text(encoding='utf-8')
-          match = re.search(r'const b="([A-Za-z0-9+/=]+)"', wrapper)
-          if match:
-              html = gzip.decompress(base64.b64decode(match.group(1))).decode('utf-8')
-          else:
-              html = wrapper
-
+          payload = Path('preview/.source.html.gz.b64').read_text(encoding='utf-8').strip()
+          html = gzip.decompress(base64.b64decode(payload)).decode('utf-8')
           assert 'class="note-window"' in html, 'Decoded HTML is missing the Note window'
-          output = Path('preview')
-          output.mkdir(exist_ok=True)
 
+          output = Path('preview')
           with sync_playwright() as playwright:
               browser = playwright.chromium.launch(headless=True)
               for theme in ('dark', 'light'):
