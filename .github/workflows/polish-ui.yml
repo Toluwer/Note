@@ -1,0 +1,717 @@
+name: Polish UI behavior
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/polish-ui.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Apply UI cleanup
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          def read(path):
+              return Path(path).read_text()
+
+          def write(path, text):
+              Path(path).write_text(text)
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise RuntimeError(f'missing patch target: {label}')
+              return text.replace(old, new, 1)
+
+          theme_manager = '''local Signal = require("src/Core/Signal")
+          local Utilities = require("src/Core/Utilities")
+
+          local ThemeManager = {}
+          ThemeManager.__index = ThemeManager
+
+          function ThemeManager.new(library, theme)
+              local self = setmetatable({
+                  Library = library,
+                  Name = nil,
+                  Theme = nil,
+                  Bindings = setmetatable({}, { __mode = "k" }),
+                  Changed = Signal.new(),
+                  _destroyed = false,
+              }, ThemeManager)
+              self:SetTheme(theme or library.DefaultTheme or "Dark", false)
+              return self
+          end
+
+          function ThemeManager:Resolve(theme)
+              if type(theme) == "string" then
+                  local registered = self.Library.Themes[theme]
+                  assert(registered, string.format('[Note] Unknown theme "%s"', theme))
+                  return Utilities.DeepCopy(registered), theme
+              elseif type(theme) == "table" then
+                  local parentName = theme.Inherits or self.Library.DefaultTheme or "Dark"
+                  local parent = self.Library.Themes[parentName] or self.Library.Themes.Dark
+                  local resolved = Utilities.Merge(parent, theme)
+                  return resolved, resolved.Name or "Custom"
+              end
+              error("[Note] Theme must be a registered theme name or table", 3)
+          end
+
+          function ThemeManager:Get(token)
+              return self.Theme[token]
+          end
+
+          function ThemeManager:Bind(instance, propertyMap)
+              if self._destroyed or not instance then return end
+              self.Bindings[instance] = propertyMap
+              self:Apply(instance, false)
+          end
+
+          function ThemeManager:Unbind(instance)
+              self.Bindings[instance] = nil
+          end
+
+          function ThemeManager:Apply(instance, animate)
+              local map = self.Bindings[instance]
+              if not map or not instance.Parent then return end
+              local properties = {}
+              for property, token in pairs(map) do
+                  local value
+                  if type(token) == "function" then
+                      value = token(self.Theme, self.Theme.Accent)
+                  else
+                      value = self:Get(token)
+                  end
+                  if property == "BackgroundTransparency"
+                      and self.Library.FrostedGlass == false
+                      and type(value) == "number"
+                      and value < 0.5 then
+                      value = 0
+                  end
+                  if value ~= nil then properties[property] = value end
+              end
+              if animate and self.Library.Animation then
+                  self.Library.Animation:Tween(instance, properties, self.Library.Tokens.Animation.Normal)
+              else
+                  for property, value in pairs(properties) do
+                      local ok, err = pcall(function() instance[property] = value end)
+                      if not ok then warn("[Note] Theme binding failed:", err) end
+                  end
+              end
+          end
+
+          function ThemeManager:ApplyAll(animate)
+              for instance in pairs(self.Bindings) do
+                  self:Apply(instance, animate)
+              end
+          end
+
+          function ThemeManager:SetTheme(theme, animate)
+              if self._destroyed then return end
+              local resolved, name = self:Resolve(theme)
+              self.Theme = resolved
+              self.Name = name
+              self:ApplyAll(animate ~= false)
+              self.Changed:Fire(self.Theme, self.Name)
+          end
+
+          function ThemeManager:Destroy()
+              if self._destroyed then return end
+              self._destroyed = true
+              table.clear(self.Bindings)
+              self.Changed:Destroy()
+          end
+
+          return ThemeManager
+          '''
+          write('src/Core/ThemeManager.lua', '\n'.join(line[10:] if line.startswith('          ') else line for line in theme_manager.splitlines()) + '\n')
+
+          note = read('src/Note.lua')
+          note = note.replace('Version = "0.3.0"', 'Version = "0.3.1"')
+          note = replace_once(note,
+              '    self.GlobalThemeManager = ThemeManager.new(self, self.DefaultTheme, config.Accent)\n',
+              '    self.GlobalThemeManager = ThemeManager.new(self, self.DefaultTheme)\n',
+              'global theme manager accent')
+          note = replace_once(note,
+              '''function Note:SetDefaultTheme(theme, accent)
+              self:_ensureInitialized()
+              self.GlobalThemeManager:SetTheme(theme)
+              if accent then
+                  self.GlobalThemeManager:SetAccent(accent)
+              end
+              self.DefaultTheme = type(theme) == "string" and theme or self.DefaultTheme
+              return self
+          end
+          ''',
+              '''function Note:SetDefaultTheme(theme)
+              self:_ensureInitialized()
+              self.GlobalThemeManager:SetTheme(theme)
+              self.DefaultTheme = type(theme) == "string" and theme or self.DefaultTheme
+              return self
+          end
+          ''',
+              'default theme accent API')
+          write('src/Note.lua', note)
+
+          window = read('src/Components/Window.lua')
+          window = replace_once(window,
+              '        _tabOrder = 0,\n        _destroyed = false,\n',
+              '        _tabOrder = 0,\n        _minimizeRevision = 0,\n        _destroyed = false,\n',
+              'window minimize revision')
+          window = replace_once(window,
+              '    self.ThemeManager = ThemeManager.new(library, config.Theme or library.DefaultTheme, config.Accent)\n',
+              '    self.ThemeManager = ThemeManager.new(library, config.Theme or library.DefaultTheme)\n',
+              'window accent config')
+          window = replace_once(window,
+              '''function Window:SetTheme(theme, options)
+              options = options or {}
+              local preserveAccent = type(options) == "table" and options.PreserveAccent == true
+              self.ThemeManager:SetTheme(theme, nil, not preserveAccent)
+              return self
+          end
+
+          function Window:ApplyTheme(theme)
+              return self:SetTheme(theme)
+          end
+
+          function Window:ClearAccent()
+              self.ThemeManager:ClearAccent()
+              return self
+          end
+
+          function Window:SetAccent(color)
+              self.ThemeManager:SetAccent(color)
+              return self
+          end
+          ''',
+              '''function Window:SetTheme(theme)
+              self.ThemeManager:SetTheme(theme)
+              return self
+          end
+
+          function Window:ApplyTheme(theme)
+              return self:SetTheme(theme)
+          end
+          ''',
+              'window accent methods')
+          window = replace_once(window,
+              '''function Window:Minimize()
+              if self._destroyed or self.Minimized then return self end
+              self.Minimized = true
+              self._restoreSize = self.Main.Size
+              if self.TitleDivider then self.TitleDivider.Visible = false end
+              if self.ResizeHandle then self.ResizeHandle.Visible = false end
+              local targetWidth = math.max(300, math.min(self.Main.AbsoluteSize.X, 420))
+              self.Library.Animation:Tween(self.Main, {
+                  Size = UDim2.fromOffset(targetWidth, self.Library.Tokens.Size.TitleBar),
+              }, self.Library.Tokens.Animation.Normal)
+              task.delay(self.Library.Tokens.Animation.Normal * 0.7, function()
+                  if self.Main and self.Minimized then
+                      self.Body.Visible = false
+                  end
+              end)
+              self.MinimizedChanged:Fire(true)
+              return self
+          end
+
+          function Window:Restore()
+              if self._destroyed or not self.Minimized then return self end
+              self.Minimized = false
+              self.Body.Visible = true
+              self.Library.Animation:Tween(self.Main, {
+                  Size = self._restoreSize or UDim2.fromOffset(620, 450),
+              }, self.Library.Tokens.Animation.Normal)
+              task.delay(self.Library.Tokens.Animation.Normal, function()
+                  if not self._destroyed and not self.Minimized and self.TitleDivider then
+                      self.TitleDivider.Visible = true
+                  end
+              end)
+              self.DragController:SetEnabled(self.Draggable)
+              if self.ResizeHandle then self.ResizeHandle.Visible = true end
+              self.MinimizedChanged:Fire(false)
+              return self
+          end
+          ''',
+              '''function Window:Minimize()
+              if self._destroyed or self.Minimized then return self end
+              self.Minimized = true
+              self._minimizeRevision += 1
+              local revision = self._minimizeRevision
+              self._restoreSize = self.Main.Size
+              if self.TitleDivider then self.TitleDivider.Visible = false end
+              if self.ResizeHandle then self.ResizeHandle.Visible = false end
+              local targetWidth = math.max(300, math.min(self.Main.AbsoluteSize.X, 420))
+              local tween = self.Library.Animation:Tween(self.Main, {
+                  Size = UDim2.fromOffset(targetWidth, self.Library.Tokens.Size.TitleBar),
+              }, self.Library.Tokens.Animation.Normal, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
+              local function finish()
+                  if not self._destroyed and revision == self._minimizeRevision and self.Minimized and self.Body then
+                      self.Body.Visible = false
+                  end
+              end
+              if tween then
+                  local connection
+                  connection = tween.Completed:Connect(function(state)
+                      if connection then connection:Disconnect() end
+                      if state == Enum.PlaybackState.Completed then finish() end
+                  end)
+              else
+                  finish()
+              end
+              self.MinimizedChanged:Fire(true)
+              return self
+          end
+
+          function Window:Restore()
+              if self._destroyed or not self.Minimized then return self end
+              self.Minimized = false
+              self._minimizeRevision += 1
+              local revision = self._minimizeRevision
+              self.Body.Visible = true
+              local tween = self.Library.Animation:Tween(self.Main, {
+                  Size = self._restoreSize or UDim2.fromOffset(620, 450),
+              }, self.Library.Tokens.Animation.Normal, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
+              local function finish()
+                  if not self._destroyed and revision == self._minimizeRevision and not self.Minimized and self.TitleDivider then
+                      self.TitleDivider.Visible = true
+                  end
+              end
+              if tween then
+                  local connection
+                  connection = tween.Completed:Connect(function(state)
+                      if connection then connection:Disconnect() end
+                      if state == Enum.PlaybackState.Completed then finish() end
+                  end)
+              else
+                  finish()
+              end
+              self.DragController:SetEnabled(self.Draggable)
+              if self.ResizeHandle then self.ResizeHandle.Visible = true end
+              self.MinimizedChanged:Fire(false)
+              return self
+          end
+          ''',
+              'window minimize animation')
+          write('src/Components/Window.lua', window)
+
+          switcher = read('src/Components/ThemeSwitcher.lua')
+          switcher = switcher.replace('    self.ResetAccent = config.ResetAccent ~= false\n', '')
+          switcher = replace_once(switcher,
+              '    self.Window:SetTheme(themeName, { PreserveAccent = not self.ResetAccent })\n',
+              '    self.Window:SetTheme(themeName)\n',
+              'theme switcher accent reset')
+          write('src/Components/ThemeSwitcher.lua', switcher)
+
+          button = read('src/Components/Button.lua')
+          button = replace_once(button,
+              '    local actionStroke = Utilities.Stroke(action, Color3.new(), 1, 0)\n',
+              '''    local actionStroke = Utilities.Stroke(action, Color3.new(), 1, 0)
+              local pressScale = Utilities.Create("UIScale", {
+                  Scale = 1,
+                  Parent = action,
+              })
+          ''',
+              'button press scale')
+          button = replace_once(button,
+              '''    self.Maid:Give(action.MouseLeave:Connect(function()
+              self._hovered = false
+              self.Window.ThemeManager:Apply(action, true)
+          end))
+          self.Maid:Give(action.MouseButton1Down:Connect(function()
+              if self.Disabled or self.Loading then return end
+              self.Library.Animation:Tween(action, { Size = UDim2.fromOffset(120, 32) }, self.Library.Tokens.Animation.Fast)
+          end))
+          self.Maid:Give(action.MouseButton1Up:Connect(function()
+              self.Library.Animation:Tween(action, { Size = UDim2.fromOffset(124, 34) }, self.Library.Tokens.Animation.Fast)
+          end))
+          ''',
+              '''    local function setPressed(pressed)
+              self.Library.Animation:Tween(
+                  pressScale,
+                  { Scale = pressed and 0.97 or 1 },
+                  self.Library.Tokens.Animation.Fast,
+                  Enum.EasingStyle.Quint,
+                  Enum.EasingDirection.Out
+              )
+          end
+          self.Maid:Give(action.MouseLeave:Connect(function()
+              self._hovered = false
+              setPressed(false)
+              self.Window.ThemeManager:Apply(action, true)
+          end))
+          self.Maid:Give(action.MouseButton1Down:Connect(function()
+              if self.Disabled or self.Loading then return end
+              setPressed(true)
+          end))
+          self.Maid:Give(action.MouseButton1Up:Connect(function()
+              setPressed(false)
+          end))
+          ''',
+              'button press animation')
+          write('src/Components/Button.lua', button)
+
+          color = read('src/Components/Colorpicker.lua')
+          color = color.replace(
+              '''    local popup = Utilities.Create("Frame", {
+                  Name = "ColorpickerPopup",
+                  BackgroundColor3 = Color3.new(),
+                  BorderSizePixel = 0,
+                  Size = UDim2.fromOffset(320, height),
+                  ZIndex = 205,
+                  Parent = self.Library.Overlay:GetLayer("Popovers"),
+              })
+          ''',
+              '''    local popup = Utilities.Create("CanvasGroup", {
+                  Name = "ColorpickerPopup",
+                  BackgroundColor3 = Color3.new(),
+                  BorderSizePixel = 0,
+                  Size = UDim2.fromOffset(320, height),
+                  GroupTransparency = 1,
+                  ClipsDescendants = true,
+                  ZIndex = 205,
+                  Parent = self.Library.Overlay:GetLayer("Popovers"),
+              })
+          ''', 1)
+          color = color.replace('    maid:Give(popup)\n', '', 1)
+          color = replace_once(color,
+              '    self.Window.ThemeManager:Bind(popupStroke, { Color = "Border", Transparency = "BorderTransparency" })\n',
+              '''    self.Window.ThemeManager:Bind(popupStroke, { Color = "Border", Transparency = "BorderTransparency" })
+              local popupScale = Utilities.Create("UIScale", {
+                  Scale = 0.97,
+                  Parent = popup,
+              })
+          ''',
+              'color picker scale')
+          color = replace_once(color,
+              '    self._popup = popup\n    self._sv = sv\n',
+              '    self._popup = popup\n    self._popupScale = popupScale\n    self._sv = sv\n',
+              'color picker refs')
+          color_pattern = re.compile(
+              r'    reposition\(\)\n'
+              r'    maid:Give\(RunService\.Heartbeat:Connect\(reposition\)\)\n'
+              r'    maid:Give\(self\.Library\.InputManager:RegisterOutside\(\{ popup, self\.Preview \}, function\(\) self:Close\(\) end\)\)\n'
+              r'    maid:Give\(self\.Library\.InputManager:PushEscape\(function\(\) self:Close\(\) end\)\)\n'
+              r'    popup\.BackgroundTransparency = 1\n'
+              r'    popup\.Size = UDim2\.fromOffset\(300, height - 18\)\n'
+              r'    self\.Library\.Animation:Tween\(popup, \{\n'
+              r'        BackgroundTransparency = 0,\n'
+              r'        Size = UDim2\.fromOffset\(320, height\),\n'
+              r'    \}, self\.Library\.Tokens\.Animation\.Normal\)\n'
+              r'    return self\n'
+              r'end\n\n'
+              r'function Colorpicker:Close\(\)\n.*?'
+              r'end\n\n'
+              r'function Colorpicker:Toggle\(\)',
+              re.S,
+          )
+          color_replacement = '''    reposition()
+              maid:Replace("AnchorTracking", RunService.Heartbeat:Connect(reposition))
+              maid:Give(self.Library.InputManager:RegisterOutside({ popup, self.Preview }, function() self:Close() end))
+              maid:Give(self.Library.InputManager:PushEscape(function() self:Close() end))
+
+              self.Library.Animation:Cancel(popup)
+              self.Library.Animation:Cancel(popupScale)
+              self.Library.Animation:Tween(popup, { GroupTransparency = 0 }, self.Library.Tokens.Animation.Normal, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+              self.Library.Animation:Tween(popupScale, { Scale = 1 }, self.Library.Tokens.Animation.Normal, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+              return self
+          end
+
+          function Colorpicker:Close()
+              if not self._popup then return self end
+              local popup = self._popup
+              local popupScale = self._popupScale
+              local popupMaid = self._popupMaid
+              self._popup = nil
+              self._popupScale = nil
+              self._popupMaid = nil
+
+              if popupMaid then popupMaid:Destroy() end
+              self.Library.Animation:Cancel(popup)
+              if popupScale then self.Library.Animation:Cancel(popupScale) end
+
+              local duration = self.Library.Tokens.Animation.Normal
+              local fade = self.Library.Animation:Tween(popup, { GroupTransparency = 1 }, duration, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
+              if popupScale then
+                  self.Library.Animation:Tween(popupScale, { Scale = 0.97 }, duration, Enum.EasingStyle.Quint, Enum.EasingDirection.InOut)
+              end
+
+              local finalized = false
+              local function finalize()
+                  if finalized then return end
+                  finalized = true
+                  if popup and popup.Parent then popup:Destroy() end
+              end
+              if fade then
+                  local connection
+                  connection = fade.Completed:Connect(function()
+                      if connection then connection:Disconnect() end
+                      finalize()
+                  end)
+              end
+              task.delay(duration + 0.05, finalize)
+
+              self._fields = nil
+              self._alphaGradient = nil
+              self._alphaBar = nil
+              self._alphaCursor = nil
+              return self
+          end
+
+          function Colorpicker:Toggle()'''
+          color, count = color_pattern.subn('\n'.join(line[10:] if line.startswith('          ') else line for line in color_replacement.splitlines()), color, count=1)
+          if count != 1:
+              raise RuntimeError('failed to replace color picker animation')
+          write('src/Components/Colorpicker.lua', color)
+
+          section = read('src/Components/Section.lua')
+          section = section.replace('local Colorpicker = require("src/Components/ColorpickerSmooth")', 'local Colorpicker = require("src/Components/Colorpicker")')
+          write('src/Components/Section.lua', section)
+          smooth = Path('src/Components/ColorpickerSmooth.lua')
+          if smooth.exists(): smooth.unlink()
+
+          dropdown = read('src/Components/Dropdown.lua')
+          dropdown = replace_once(dropdown,
+              '''    if self._popup then
+              self:_animatePopup(true, revision)
+          ''',
+              '''    if self._popup then
+              if self._popupMaid and self._repositionPopup then
+                  self._repositionPopup()
+                  self._popupMaid:Replace("AnchorTracking", RunService.Heartbeat:Connect(self._repositionPopup))
+              end
+              self:_animatePopup(true, revision)
+          ''',
+              'dropdown rapid reopen')
+          dropdown = replace_once(dropdown,
+              '''    reposition()
+              maid:Give(RunService.Heartbeat:Connect(reposition))
+          ''',
+              '''    self._repositionPopup = reposition
+              reposition()
+              maid:Replace("AnchorTracking", RunService.Heartbeat:Connect(reposition))
+          ''',
+              'dropdown tracking')
+          dropdown = replace_once(dropdown,
+              '''    self._isOpen = false
+              self._popupRevision += 1
+              self:_animatePopup(false, self._popupRevision)
+          ''',
+              '''    self._isOpen = false
+              self._popupRevision += 1
+              if self._popupMaid then self._popupMaid:Replace("AnchorTracking", nil) end
+              self:_animatePopup(false, self._popupRevision)
+          ''',
+              'dropdown close tracking')
+          dropdown = dropdown.replace('        self._popupAnimating = false\n', '        self._popupAnimating = false\n        self._repositionPopup = nil\n', 1)
+          write('src/Components/Dropdown.lua', dropdown)
+
+          notification = read('src/Components/Notification.lua')
+          notification = replace_once(notification,
+              '''    self.Library.Animation:Tween(self.Frame, {
+              Position = UDim2.new(1, hiddenOffset, 0, self.Frame.Position.Y.Offset),
+              BackgroundTransparency = 1,
+          }, self.Library.Tokens.Animation.Normal)
+          local frame = self.Frame
+          local library = self.Library
+          task.delay(self.Library.Tokens.Animation.Normal, function()
+              self.Maid:Destroy()
+              if frame and frame.Parent then
+                  frame:Destroy()
+              end
+          end)
+          library:_removeNotification(self)
+          ''',
+              '''    local duration = self.Library.Tokens.Animation.Normal
+              local tween = self.Library.Animation:Tween(self.Frame, {
+                  Position = UDim2.new(1, hiddenOffset, 0, self.Frame.Position.Y.Offset),
+                  BackgroundTransparency = 1,
+              }, duration, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+              local frame = self.Frame
+              local library = self.Library
+              local finalized = false
+              local function finalize()
+                  if finalized then return end
+                  finalized = true
+                  self.Maid:Destroy()
+                  if frame and frame.Parent then frame:Destroy() end
+              end
+              if tween then
+                  local connection
+                  connection = tween.Completed:Connect(function()
+                      if connection then connection:Disconnect() end
+                      finalize()
+                  end)
+              end
+              task.delay(duration + 0.05, finalize)
+              library:_removeNotification(self)
+          ''',
+              'notification close completion')
+          write('src/Components/Notification.lua', notification)
+
+          dialog = read('src/Components/Dialog.lua')
+          dialog = replace_once(dialog,
+              '''    library.Animation:Tween(
+              blur,
+              { Size = 0 },
+              duration,
+              Enum.EasingStyle.Quint,
+              Enum.EasingDirection.In
+          )
+          task.delay(duration + 0.04, destroyOwnedBlur)
+          ''',
+              '''    local tween = library.Animation:Tween(
+              blur,
+              { Size = 0 },
+              duration,
+              Enum.EasingStyle.Quint,
+              Enum.EasingDirection.In
+          )
+          if tween then
+              local connection
+              connection = tween.Completed:Connect(function()
+                  if connection then connection:Disconnect() end
+                  destroyOwnedBlur()
+              end)
+          end
+          task.delay(duration + 0.05, destroyOwnedBlur)
+          ''',
+              'dialog blur cleanup')
+          dialog = replace_once(dialog,
+              '''    self.Library.Animation:Tween(
+              panel,
+              { GroupTransparency = 1 },
+              duration,
+              Enum.EasingStyle.Quint,
+              Enum.EasingDirection.In
+          )
+          self.Library.Animation:Tween(
+              panelScale,
+              { Scale = 0.97 },
+              duration,
+              Enum.EasingStyle.Quint,
+              Enum.EasingDirection.In
+          )
+
+          task.delay(duration + 0.04, function()
+              self.Maid:Destroy()
+          end)
+          ''',
+              '''    local fade = self.Library.Animation:Tween(
+              panel,
+              { GroupTransparency = 1 },
+              duration,
+              Enum.EasingStyle.Quint,
+              Enum.EasingDirection.InOut
+          )
+          self.Library.Animation:Tween(
+              panelScale,
+              { Scale = 0.97 },
+              duration,
+              Enum.EasingStyle.Quint,
+              Enum.EasingDirection.InOut
+          )
+
+          local finalized = false
+          local function finalize()
+              if finalized then return end
+              finalized = true
+              self.Maid:Destroy()
+          end
+          if fade then
+              local connection
+              connection = fade.Completed:Connect(function()
+                  if connection then connection:Disconnect() end
+                  finalize()
+              end)
+          end
+          task.delay(duration + 0.05, finalize)
+          ''',
+              'dialog close completion')
+          write('src/Components/Dialog.lua', dialog)
+
+          showcase = read('examples/showcase.lua')
+          showcase = showcase.replace('Description = "Runtime theme and accent switching."', 'Description = "Runtime theme switching and standalone color selection."')
+          showcase = replace_once(showcase,
+              '''Theme:CreateColorpicker({
+              Name = "Accent Color",
+              Description = "Hue, saturation, value, RGB, hex, and alpha controls.",
+              Flag = "accent",
+              Default = Color3.fromRGB(176, 176, 180),
+              ShowAlpha = true,
+              Callback = function(color)
+                  Window:SetAccent(color)
+              end,
+          })
+          ''',
+              '''Theme:CreateColorpicker({
+              Name = "Color Picker",
+              Description = "Standalone hue, saturation, value, RGB, hex, and alpha selection.",
+              Flag = "selectedColor",
+              Default = Color3.fromRGB(176, 176, 180),
+              ShowAlpha = true,
+              Callback = function(color, alpha)
+                  print("Selected color:", color, "alpha:", alpha)
+              end,
+          })
+          ''',
+              'showcase accent picker')
+          showcase = showcase.replace('Description = "Switches every bound surface, text, icon, border, and accent token."', 'Description = "Switches every bound surface, text, icon, border, and selection token."')
+          showcase = showcase.replace('    ResetAccent = true,\n', '')
+          write('examples/showcase.lua', showcase)
+
+          readme = read('README.md')
+          readme = readme.replace('- Built-in theme buttons, optional per-window accent colors, inherited custom themes, and theme signals', '- Built-in theme buttons, inherited custom themes, and theme signals')
+          readme = re.sub(r'\n`Dark` and `Light` intentionally use neutral grayscale defaults\. Accent color is opt-in through `Window:SetAccent` or a color picker; the color picker remains a supported built-in component\.\n', '\n`Dark` and `Light` intentionally use fixed neutral grayscale selection colors. The color picker is a standalone value control and does not recolor the interface.\n', readme)
+          readme = readme.replace('| `Accent` | `Color3?` | Per-window accent |\n', '')
+          readme = readme.replace('Window:SetAccent(color)\n', '')
+          readme = readme.replace('    Name = "Accent",', '    Name = "Color",')
+          readme = readme.replace('        Window:SetAccent(color)\n', '        print(color, alpha)\n')
+          readme = readme.replace('Both built-in themes avoid colored or neon surface treatments. Accent color changes are optional. `Window:SetTheme` resets the accent to the selected theme by default, so every token changes together. Pass `{ PreserveAccent = true }` only when a custom accent should remain.', 'Both built-in themes avoid colored or neon surface treatments. Their selection colors are fixed neutral theme tokens and cannot be overridden at runtime.')
+          readme = readme.replace('    ResetAccent = true,\n', '')
+          readme = re.sub(r'Window:SetAccent\([^\n]*\)\n', '', readme)
+          write('README.md', readme)
+
+          changelog = read('CHANGELOG.md')
+          marker = '## [Unreleased]\n'
+          entry = '- Removed runtime accent overrides; color pickers are now standalone value controls and themes retain fixed neutral selection tokens.\n- Audited animated controls and made button presses, color-picker popovers, dropdown dismissal, window minimize/restore, notifications, and dialogs interruption-safe and completion-driven.\n'
+          if entry not in changelog:
+              changelog = changelog.replace(marker, marker + entry, 1)
+          write('CHANGELOG.md', changelog)
+
+          for path in [Path('.audit/animation.txt'), Path('.audit/accent.txt'), Path('.github/workflows/audit-ui.yml')]:
+              if path.exists(): path.unlink()
+          audit_dir = Path('.audit')
+          if audit_dir.exists() and not any(audit_dir.iterdir()): audit_dir.rmdir()
+
+          forbidden = ('SetAccent', 'ClearAccent', 'ResetAccent', 'PreserveAccent', 'config.Accent', '_accentOverride')
+          scan = '\n'.join(path.read_text() for path in Path('src').rglob('*.lua')) + read('examples/showcase.lua')
+          for token in forbidden:
+              if token in scan:
+                  raise RuntimeError(f'forbidden accent API remains: {token}')
+          PY
+
+      - name: Build and verify distribution
+        run: |
+          python tools/bundle.py
+          python tools/check.py
+
+      - name: Commit polished runtime
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "fix: polish animations and remove accent overrides"
+          git push
