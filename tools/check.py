@@ -84,6 +84,57 @@ def main() -> None:
     if missing_factories:
         fail("Section.lua is missing advanced factories: " + ", ".join(missing_factories))
 
+    combined_source = "\n".join(
+        path.read_text(encoding="utf-8") for path in SRC.rglob("*.lua")
+    )
+    showcase_source = (ROOT / "examples" / "showcase.lua").read_text(encoding="utf-8")
+
+    forbidden_accent_api = {
+        "SetAccent",
+        "ClearAccent",
+        "ResetAccent",
+        "PreserveAccent",
+        "config.Accent",
+        "_accentOverride",
+    }
+    remaining_accent_api = sorted(
+        token for token in forbidden_accent_api
+        if token in combined_source or token in showcase_source
+    )
+    if remaining_accent_api:
+        fail("runtime accent override API returned: " + ", ".join(remaining_accent_api))
+    if "no connection to the interface theme" not in showcase_source:
+        fail("showcase color input must remain separate from interface themes")
+    if "ColorInput:CreateColorpicker" not in showcase_source:
+        fail("showcase color picker is not owned by its standalone section")
+
+    animation_guards = {
+        SRC / "Components" / "Button.lua": ("pressScale", "UIScale"),
+        SRC / "Components" / "Window.lua": ("_minimizeRevision", "PlaybackState.Completed"),
+        SRC / "Components" / "Dropdown.lua": ("AnchorTracking", "_popupRevision"),
+        SRC / "Components" / "ColorpickerSmooth.lua": ("CanvasGroup", "fade.Completed"),
+        SRC / "Components" / "CommandPaletteHeadless.lua": (
+            "BindActionAtPriority",
+            "ContextActionService",
+        ),
+        SRC / "Components" / "ProgressBar.lua": (
+            "_indeterminateRevision",
+            "Animation:Cancel",
+        ),
+        SRC / "Components" / "Section.lua": (
+            "_collapseRevision",
+            "PlaybackState.Completed",
+        ),
+    }
+    for path, required_tokens in animation_guards.items():
+        text = path.read_text(encoding="utf-8")
+        missing_tokens = [token for token in required_tokens if token not in text]
+        if missing_tokens:
+            fail(
+                f"{path.relative_to(ROOT)} lost animation safety tokens: "
+                + ", ".join(missing_tokens)
+            )
+
     bundler = load_bundler()
     expected = bundler.build()
     before = BUNDLE.read_text(encoding="utf-8") if BUNDLE.exists() else None
