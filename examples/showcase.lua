@@ -311,7 +311,7 @@ local Appearance = Window:CreateTab({
 
 local Theme = Appearance:CreateSection({
     Name = "Theme",
-    Description = "Switch between the built-in neutral themes.",
+    Description = "Test representative built-in color themes.",
     Icon = "paintbrush",
 })
 
