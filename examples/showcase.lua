@@ -315,11 +315,26 @@ local Theme = Appearance:CreateSection({
     Icon = "paintbrush",
 })
 
-Theme:CreateThemeButtons({
-    Name = "Interface Theme",
-    Description = "Switches every bound surface, text, icon, border, and selection token.",
-    Themes = { "Dark", "Light" },
+Theme:CreateParagraph({
+    Title = "Built-in presets",
+    Content = "These are ordinary buttons added only to the showcase. Normal scripts do not receive automatic theme controls. See examples/themes.lua for every preset.",
 })
+
+local showcaseThemes = {
+    "Dark", "Light", "Black", "Red", "Orange", "Gold",
+    "Green", "Emerald", "Cyan", "Blue", "Purple", "Pink",
+}
+
+for _, themeName in ipairs(showcaseThemes) do
+    Theme:CreateButton({
+        Name = themeName,
+        ButtonText = "Apply",
+        Style = "Secondary",
+        Callback = function()
+            Window:SetTheme(themeName)
+        end,
+    })
+end
 
 local ColorInput = Appearance:CreateSection({
     Name = "Color Input",
