@@ -61,6 +61,7 @@ def main() -> None:
         "Note:_removeDialog",
         "Note:ExportConfig",
         "Note:ImportConfig",
+        "Note:GetThemeNames",
         "Note:Destroy",
     }
     missing_note_methods = sorted(
@@ -69,8 +70,28 @@ def main() -> None:
     )
     if missing_note_methods:
         fail("src/Note.lua is missing runtime methods: " + ", ".join(missing_note_methods))
-    if 'Version = "0.4.0"' not in note_source:
-        fail("src/Note.lua is not version 0.4.0")
+    if 'Version = "0.5.0"' not in note_source:
+        fail("src/Note.lua is not version 0.5.0")
+    if 'local Presets = require("src/Themes/Presets")' not in note_source:
+        fail("src/Note.lua does not register built-in preset themes")
+
+    presets_source = (SRC / "Themes" / "Presets.lua").read_text(encoding="utf-8")
+    required_themes = {
+        "Black", "White", "Graphite", "Slate", "Silver",
+        "Red", "Crimson", "Orange", "Amber", "Gold", "Yellow",
+        "Lime", "Green", "Forest", "Emerald", "Mint", "Teal",
+        "Cyan", "Aqua", "Sky", "Blue", "Navy", "Indigo",
+        "Violet", "Purple", "Lavender", "Fuchsia", "Magenta",
+        "Pink", "Rose", "Peach", "Brown", "Copper", "Bronze",
+    }
+    missing_themes = sorted(
+        name for name in required_themes
+        if f'{{ "{name}",' not in presets_source
+    )
+    if missing_themes:
+        fail("src/Themes/Presets.lua is missing themes: " + ", ".join(missing_themes))
+    if "function foregroundFor" not in presets_source or "makeDark" not in presets_source:
+        fail("theme presets lost fixed palette generation")
 
     section_source = (SRC / "Components" / "Section.lua").read_text(encoding="utf-8")
     required_section_factories = {
@@ -90,6 +111,7 @@ def main() -> None:
         path.read_text(encoding="utf-8") for path in SRC.rglob("*.lua")
     )
     showcase_source = (ROOT / "examples" / "showcase.lua").read_text(encoding="utf-8")
+    theme_example = (ROOT / "examples" / "themes.lua").read_text(encoding="utf-8")
 
     forbidden_accent_api = {
         "SetAccent",
@@ -101,7 +123,7 @@ def main() -> None:
     }
     remaining_accent_api = sorted(
         token for token in forbidden_accent_api
-        if token in combined_source or token in showcase_source
+        if token in combined_source or token in showcase_source or token in theme_example
     )
     if remaining_accent_api:
         fail("runtime accent override API returned: " + ", ".join(remaining_accent_api))
@@ -109,6 +131,12 @@ def main() -> None:
         fail("showcase color input must remain separate from interface themes")
     if "ColorInput:CreateColorpicker" not in showcase_source:
         fail("showcase color picker is not owned by its standalone section")
+    if "Window:SetTheme(themeName)" not in theme_example:
+        fail("theme gallery does not use ordinary buttons to apply themes")
+    if "CreateThemeButtons" in theme_example or "CreateThemeSwitcher" in theme_example:
+        fail("theme gallery must not rely on a dedicated theme switcher component")
+    if "No automatic theme controls" not in theme_example:
+        fail("theme gallery must document that theme controls are opt-in")
 
     animation_guards = {
         SRC / "Components" / "Button.lua": ("pressScale", "UIScale"),
@@ -158,23 +186,17 @@ def main() -> None:
         if token not in split_example:
             fail(f"split-layout example is missing {token}")
 
-    base_component_source = (SRC / "Internal" / "BaseComponent.lua").read_text(encoding="utf-8")
-    responsive_layout_tokens = {
+    base_source = (SRC / "Internal" / "BaseComponent.lua").read_text(encoding="utf-8")
+    responsive_tokens = {
         "RESPONSIVE_CONTROLS",
+        "function BaseComponent:_bindResponsiveLayout",
         "ResponsiveBreakpoint",
         "tallControl",
-        "function BaseComponent:_bindResponsiveLayout",
-        'GetPropertyChangedSignal("AbsoluteSize")',
-        "specification.FullWidth",
+        "controlY = hasDescription and 57 or 38",
     }
-    missing_responsive_tokens = sorted(
-        token for token in responsive_layout_tokens if token not in base_component_source
-    )
-    if missing_responsive_tokens:
-        fail(
-            "BaseComponent.lua lost responsive narrow-layout support: "
-            + ", ".join(missing_responsive_tokens)
-        )
+    missing_responsive = sorted(token for token in responsive_tokens if token not in base_source)
+    if missing_responsive:
+        fail("BaseComponent.lua lost responsive component geometry: " + ", ".join(missing_responsive))
 
     bundler = load_bundler()
     expected = bundler.build()
