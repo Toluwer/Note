@@ -6,6 +6,7 @@ local Utilities = require("src/Core/Utilities")
 local Tokens = require("src/Themes/Tokens")
 local Dark = require("src/Themes/Dark")
 local Light = require("src/Themes/Light")
+local Presets = require("src/Themes/Presets")
 local Animation = require("src/Core/Animation")
 local InputManager = require("src/Core/InputManager")
 local Overlay = require("src/Core/Overlay")
@@ -26,14 +27,31 @@ local function removeFrom(array, value)
     end
 end
 
+local function buildThemes()
+    local themes = {
+        Dark = Dark,
+        Light = Light,
+    }
+    for name, theme in pairs(Presets.Themes) do
+        themes[name] = theme
+    end
+    return themes
+end
+
+local function buildThemeOrder()
+    local order = { "Dark", "Light" }
+    for _, name in ipairs(Presets.Order) do
+        table.insert(order, name)
+    end
+    return order
+end
+
 function Note.new()
     return setmetatable({
-        Version = "0.4.0",
+        Version = "0.5.0",
         Tokens = Tokens,
-        Themes = {
-            Dark = Dark,
-            Light = Light,
-        },
+        Themes = buildThemes(),
+        ThemeOrder = buildThemeOrder(),
         DefaultTheme = "Dark",
         Flags = {},
         Windows = {},
@@ -101,9 +119,17 @@ function Note:RegisterTheme(name, theme)
     assert(type(theme) == "table", "[Note] Theme must be a table")
     local inherited = theme.Inherits or self.DefaultTheme
     local base = self.Themes[inherited] or self.Themes.Dark
+    local isNew = self.Themes[name] == nil
     self.Themes[name] = Utilities.Merge(base, theme)
     self.Themes[name].Name = theme.Name or name
+    if isNew then
+        table.insert(self.ThemeOrder, name)
+    end
     return self
+end
+
+function Note:GetThemeNames()
+    return table.clone(self.ThemeOrder)
 end
 
 function Note:SetDefaultTheme(theme)
