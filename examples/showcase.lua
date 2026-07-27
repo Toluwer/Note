@@ -311,26 +311,31 @@ local Appearance = Window:CreateTab({
 
 local Theme = Appearance:CreateSection({
     Name = "Theme",
-    Description = "Runtime theme switching and standalone color selection.",
+    Description = "Switch between the built-in neutral themes.",
     Icon = "paintbrush",
 })
 
-Theme:CreateColorpicker({
+Theme:CreateThemeButtons({
+    Name = "Interface Theme",
+    Description = "Switches every bound surface, text, icon, border, and selection token.",
+    Themes = { "Dark", "Light" },
+})
+
+local ColorInput = Appearance:CreateSection({
+    Name = "Color Input",
+    Description = "Standalone color values with no connection to the interface theme.",
+    Icon = "palette",
+})
+
+ColorInput:CreateColorpicker({
     Name = "Color Picker",
-    Description = "Standalone hue, saturation, value, RGB, hex, and alpha selection.",
+    Description = "Hue, saturation, value, RGB, hex, and alpha selection.",
     Flag = "selectedColor",
     Default = Color3.fromRGB(176, 176, 180),
     ShowAlpha = true,
     Callback = function(color, alpha)
         print("Selected color:", color, "alpha:", alpha)
     end,
-})
-
-Theme:CreateThemeButtons
-({
-    Name = "Interface Theme",
-    Description = "Switches every bound surface, text, icon, border, and selection token.",
-    Themes = { "Dark", "Light" },
 })
 
 local Typography = Appearance:CreateSection({
