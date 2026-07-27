@@ -50,6 +50,7 @@ def main() -> None:
                 fail(f"{module} contains invalid asset id {asset}")
 
     note_source = (SRC / "Note.lua").read_text(encoding="utf-8")
+    init_source = (SRC / "init.lua").read_text(encoding="utf-8")
     required_note_methods = {
         "Note:CreateWindow",
         "Note:_registerWindow",
@@ -69,6 +70,8 @@ def main() -> None:
     )
     if missing_note_methods:
         fail("src/Note.lua is missing runtime methods: " + ", ".join(missing_note_methods))
+    if 'instance.Version = "0.4.0"' not in init_source:
+        fail("src/init.lua is not exposing Note 0.4.0")
 
     section_source = (SRC / "Components" / "Section.lua").read_text(encoding="utf-8")
     required_section_factories = {
@@ -134,6 +137,27 @@ def main() -> None:
                 f"{path.relative_to(ROOT)} lost animation safety tokens: "
                 + ", ".join(missing_tokens)
             )
+
+    tab_source = (SRC / "Components" / "Tab.lua").read_text(encoding="utf-8")
+    split_layout_tokens = {
+        'Layout = normalizeLayout',
+        'StackAt = tonumber',
+        'LeftColumn',
+        'RightColumn',
+        'function Tab:SetLayout',
+        'function Tab:SetSplitEnabled',
+        'function Tab:SetStackBreakpoint',
+        'function section:SetSide',
+        'function section:GetSide',
+    }
+    missing_split_tokens = sorted(token for token in split_layout_tokens if token not in tab_source)
+    if missing_split_tokens:
+        fail("Tab.lua lost split-layout support: " + ", ".join(missing_split_tokens))
+
+    split_example = (ROOT / "examples" / "split-layout.lua").read_text(encoding="utf-8")
+    for token in ('Layout = "Split"', 'Side = "Left"', 'Side = "Right"', 'StackAt = nil'):
+        if token not in split_example:
+            fail(f"split-layout example is missing {token}")
 
     bundler = load_bundler()
     expected = bundler.build()
