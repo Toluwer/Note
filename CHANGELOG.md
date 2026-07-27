@@ -2,6 +2,28 @@
 
 All notable changes to Note are documented here.
 
+## 0.5.0 - 2026-07-26
+
+### Added
+
+- Added 44 complete built-in color presets alongside `Dark` and `Light`
+- Added neutral, red, orange, yellow, green, teal, cyan, blue, purple, pink, and earth-tone theme families
+- Added `Note:GetThemeNames()` for retrieving built-in and registered theme names in stable display order
+- Added `docs/themes.md` with the complete preset list and usage examples
+- Rebuilt `examples/themes.lua` as an ordinary-button theme gallery
+
+### Changed
+
+- Themes remain named fixed palettes rather than components or runtime accent overrides
+- No theme controls are inserted automatically into normal windows or scripts
+- The color picker remains completely separate from interface themes
+- Custom themes registered through `Note:RegisterTheme()` are appended to `ThemeOrder`
+
+### Fixed
+
+- Removed stale theme-example references to deleted accent APIs
+- Kept the existing optional `ThemeSwitcher` component unchanged rather than turning presets into a new UI component
+
 ## 0.3.0 - 2026-07-25
 
 ### Added
