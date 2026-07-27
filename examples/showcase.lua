@@ -372,6 +372,85 @@ Typography:CreateButton({
     end,
 })
 
+local SplitLayout = Window:CreateTab({
+    Name = "Split Layout",
+    Icon = "panel-left",
+    Layout = "Split",
+    SplitGap = 10,
+    StackAt = nil,
+})
+
+local LeftPrimary = SplitLayout:CreateSection({
+    Name = "Left Column",
+    Description = "Split mode stays active even when the window becomes narrow.",
+    Side = "Left",
+    Collapsible = true,
+})
+
+LeftPrimary:CreateToggle({
+    Name = "Enabled",
+    Default = true,
+})
+
+LeftPrimary:CreateInput({
+    Name = "Label",
+    Placeholder = "Left column value",
+})
+
+local LeftStack = SplitLayout:CreateSection({
+    Name = "Independent Stack",
+    Description = "Each side stacks sections independently.",
+    Side = "Left",
+})
+
+LeftStack:CreateButton({
+    Name = "Move to Right",
+    Callback = function()
+        LeftStack:SetSide("Right")
+    end,
+})
+
+local RightPrimary = SplitLayout:CreateSection({
+    Name = "Right Column",
+    Description = "The other showcase tabs keep the original single-column layout.",
+    Side = "Right",
+    Collapsible = true,
+})
+
+RightPrimary:CreateSlider({
+    Name = "Amount",
+    Minimum = 0,
+    Maximum = 100,
+    Default = 45,
+    Suffix = "%",
+})
+
+RightPrimary:CreateDropdown({
+    Name = "Mode",
+    Options = { "Compact", "Balanced", "Detailed" },
+    Default = "Balanced",
+})
+
+local Responsive = SplitLayout:CreateSection({
+    Name = "Responsive Option",
+    Description = "Stacking is optional rather than forced.",
+    Side = "Right",
+})
+
+Responsive:CreateButton({
+    Name = "Stack below 520",
+    Callback = function()
+        SplitLayout:SetStackBreakpoint(520)
+    end,
+})
+
+Responsive:CreateButton({
+    Name = "Keep Narrow Split",
+    Callback = function()
+        SplitLayout:SetStackBreakpoint(nil)
+    end,
+})
+
 local Diagnostics = Window:CreateTab({
     Name = "Diagnostics",
     Icon = "info",
