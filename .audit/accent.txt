@@ -1,0 +1,78 @@
+src/Components/Button.lua:10: Primary = { Background = "Accent", Text = "AccentForeground" },
+src/Components/Button.lua:12: Destructive = { Background = "Destructive", Text = "AccentForeground" },
+src/Components/ContextMenu.lua:170: self.Window.ThemeManager:Bind(check.Instance, { ImageColor3 = "Accent" })
+src/Components/Dialog.lua:161: ImageColor3 = config.Destructive and "Destructive" or "Accent",
+src/Components/Dialog.lua:221: local background = style == "Primary" and "Accent"
+src/Components/Dialog.lua:224: local foreground = style == "Secondary" and "Text" or "AccentForeground"
+src/Components/Dropdown.lua:159: self.Window.ThemeManager:Bind(check.Instance, { ImageColor3 = "Accent" })
+src/Components/ProgressBar.lua:69: self.Window.ThemeManager:Bind(fill, { BackgroundColor3 = "Accent" })
+src/Components/Slider.lua:63: self.Window.ThemeManager:Bind(fill, { BackgroundColor3 = "Accent" })
+src/Components/Slider.lua:74: self.Window.ThemeManager:Bind(thumb, { BackgroundColor3 = "AccentForeground" })
+src/Components/Slider.lua:75: self.Window.ThemeManager:Bind(thumbStroke, { Color = "Accent" })
+src/Components/Tab.lua:63: self.Window.ThemeManager:Bind(indicator, { BackgroundColor3 = "Accent" })
+src/Components/Tab.lua:71: ImageColor3 = function(theme, accent)
+src/Components/Tab.lua:73: return self.Window.ActiveTab == self and accent or theme.TextSecondary
+src/Components/Tab.lua:93: TextColor3 = function(theme, accent)
+src/Components/ThemeSwitcher.lua:17: self.ResetAccent = config.ResetAccent ~= false
+src/Components/ThemeSwitcher.lua:62: return self.Value == themeName and theme.Accent or theme.SurfaceElevated
+src/Components/ThemeSwitcher.lua:72: return self.Value == themeName and theme.Accent or theme.Border
+src/Components/ThemeSwitcher.lua:78: return self.Value == themeName and theme.AccentForeground or theme.TextSecondary
+src/Components/ThemeSwitcher.lua:118: self.Window:SetTheme(themeName, { PreserveAccent = not self.ResetAccent })
+src/Components/Toggle.lua:41: BackgroundColor3 = function(theme, accent)
+src/Components/Toggle.lua:42: return self.Value and accent or theme.SurfaceSelected
+src/Components/Toggle.lua:45: self.Window.ThemeManager:Bind(thumb, { BackgroundColor3 = "AccentForeground" })
+src/Components/Window.lua:43: self.ThemeManager = ThemeManager.new(library, config.Theme or library.DefaultTheme, config.Accent)
+src/Components/Window.lua:101: self.ThemeManager:Bind(windowIcon.Instance, { ImageColor3 = "Accent" })
+src/Components/Window.lua:456: self.ThemeManager:Bind(windowIcon.Instance, { ImageColor3 = "Accent" })
+src/Components/Window.lua:466: local preserveAccent = type(options) == "table" and options.PreserveAccent == true
+src/Components/Window.lua:467: self.ThemeManager:SetTheme(theme, nil, not preserveAccent)
+src/Components/Window.lua:475: function Window:ClearAccent()
+src/Components/Window.lua:476: self.ThemeManager:ClearAccent()
+src/Components/Window.lua:480: function Window:SetAccent(color)
+src/Components/Window.lua:481: self.ThemeManager:SetAccent(color)
+src/Components/WindowControls.lua:37: icon:SetColor(window.ThemeManager:Get("AccentForeground"))
+src/Core/ThemeManager.lua:7: function ThemeManager.new(library, theme, accent)
+src/Core/ThemeManager.lua:12: Accent = accent,
+src/Core/ThemeManager.lua:13: _accentOverride = accent ~= nil,
+src/Core/ThemeManager.lua:19: if accent then
+src/Core/ThemeManager.lua:20: self:SetAccent(accent, false)
+src/Core/ThemeManager.lua:40: if token == "Accent" and self.Accent then
+src/Core/ThemeManager.lua:41: return self.Accent
+src/Core/ThemeManager.lua:67: value = token(self.Theme, self.Accent or self.Theme.Accent)
+src/Core/ThemeManager.lua:101: function ThemeManager:SetTheme(theme, animate, resetAccent)
+src/Core/ThemeManager.lua:105: if resetAccent then
+src/Core/ThemeManager.lua:106: self._accentOverride = false
+src/Core/ThemeManager.lua:107: self.Accent = nil
+src/Core/ThemeManager.lua:112: if not self._accentOverride then
+src/Core/ThemeManager.lua:113: self.Accent = resolved.Accent
+src/Core/ThemeManager.lua:119: function ThemeManager:SetAccent(color, animate)
+src/Core/ThemeManager.lua:120: assert(typeof(color) == "Color3", "[Note] Accent must be a Color3")
+src/Core/ThemeManager.lua:124: self.Accent = color
+src/Core/ThemeManager.lua:125: self._accentOverride = true
+src/Core/ThemeManager.lua:130: function ThemeManager:ClearAccent(animate)
+src/Core/ThemeManager.lua:134: self._accentOverride = false
+src/Core/ThemeManager.lua:135: self.Accent = self.Theme and self.Theme.Accent or nil
+src/Note.lua:67: self.GlobalThemeManager = ThemeManager.new(self, self.DefaultTheme, config.Accent)
+src/Note.lua:109: function Note:SetDefaultTheme(theme, accent)
+src/Note.lua:112: if accent then
+src/Note.lua:113: self.GlobalThemeManager:SetAccent(accent)
+src/Themes/Dark.lua:14: Accent = Color3.fromRGB(190, 190, 194),
+src/Themes/Dark.lua:15: AccentForeground = Color3.fromRGB(20, 20, 21),
+src/Themes/Light.lua:14: Accent = Color3.fromRGB(47, 47, 50),
+src/Themes/Light.lua:15: AccentForeground = Color3.fromRGB(255, 255, 255),
+examples/showcase.lua:314: Description = "Runtime theme and accent switching.",
+examples/showcase.lua:319: Name = "Accent Color",
+examples/showcase.lua:321: Flag = "accent",
+examples/showcase.lua:325: Window:SetAccent(color)
+examples/showcase.lua:331: Description = "Switches every bound surface, text, icon, border, and accent token.",
+examples/showcase.lua:333: ResetAccent = true,
+README.md:14: - Built-in theme buttons, optional per-window accent colors, inherited custom themes, and theme signals
+README.md:25: `Dark` and `Light` intentionally use neutral grayscale defaults. Accent color is opt-in through `Window:SetAccent` or a color picker; the color picker remains a supported built-in component.
+README.md:113: | `Accent` | `Color3?` | Per-window accent |
+README.md:133: Window:SetAccent(color)
+README.md:362: Name = "Accent",
+README.md:367: Window:SetAccent(color)
+README.md:432: Both built-in themes avoid colored or neon surface treatments. Accent color changes are optional. `Window:SetTheme` resets the accent to the selected theme by default, so every token changes together. Pass `{ PreserveAccent = true }` only when a custom accent should remain.
+README.md:440: ResetAccent = true,
+README.md:447: Window:SetAccent(Color3.fromRGB(176, 176, 180))
+README.md:462: Accent = Color3.fromRGB(176, 176, 180),

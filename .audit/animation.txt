@@ -1,0 +1,69 @@
+src/Components/Button.lua:89: self.Library.Animation:Tween(action, { Size = UDim2.fromOffset(120, 32) }, self.Library.Tokens.Animation.Fast)
+src/Components/Button.lua:92: self.Library.Animation:Tween(action, { Size = UDim2.fromOffset(124, 34) }, self.Library.Tokens.Animation.Fast)
+src/Components/Colorpicker.lua:401: self.Library.Animation:Tween(popup, {
+src/Components/Colorpicker.lua:412: self.Library.Animation:Tween(popup, {
+src/Components/Colorpicker.lua:418: task.delay(self.Library.Tokens.Animation.Fast, function()
+src/Components/ColorpickerSmooth.lua:22: self.Library.Animation:Cancel(popup)
+src/Components/ColorpickerSmooth.lua:37: self.Library.Animation:Cancel(scale)
+src/Components/ColorpickerSmooth.lua:38: self.Library.Animation:Tween(
+src/Components/ColorpickerSmooth.lua:63: self.Library.Animation:Cancel(popup)
+src/Components/ColorpickerSmooth.lua:65: self.Library.Animation:Cancel(self._smoothScale)
+src/Components/ColorpickerSmooth.lua:91: local fade = self.Library.Animation:Tween(
+src/Components/ColorpickerSmooth.lua:98: self.Library.Animation:Tween(
+src/Components/ColorpickerSmooth.lua:126: task.delay(duration + 0.05, finalize)
+src/Components/CommandPalette.lua:443: self.Library.Animation:Cancel(self._surface)
+src/Components/CommandPalette.lua:444: self.Library.Animation:Cancel(self._scale)
+src/Components/CommandPalette.lua:446: local fade = self.Library.Animation:Tween(
+src/Components/CommandPalette.lua:453: self.Library.Animation:Tween(
+src/Components/ContextMenu.lua:209: self.Library.Animation:Tween(row, { BackgroundTransparency = 0 }, self.Library.Tokens.Animation.Fast)
+src/Components/ContextMenu.lua:294: self.Library.Animation:Cancel(self._surface)
+src/Components/ContextMenu.lua:295: self.Library.Animation:Cancel(self._scale)
+src/Components/ContextMenu.lua:297: local fade = self.Library.Animation:Tween(
+src/Components/ContextMenu.lua:304: self.Library.Animation:Tween(
+src/Components/DataTable.lua:295: self.Library.Animation:Tween(rowButton, { BackgroundTransparency = 0.04 }, self.Library.Tokens.Animation.Fast)
+src/Components/Dialog.lua:38: library.Animation:Cancel(blur)
+src/Components/Dialog.lua:39: library.Animation:Tween(
+src/Components/Dialog.lua:62: library.Animation:Cancel(blur)
+src/Components/Dialog.lua:80: library.Animation:Tween(
+src/Components/Dialog.lua:87: task.delay(duration + 0.04, destroyOwnedBlur)
+src/Components/Dialog.lua:258: library.Animation:Tween(
+src/Components/Dialog.lua:265: library.Animation:Tween(
+src/Components/Dialog.lua:297: self.Library.Animation:Cancel(panel)
+src/Components/Dialog.lua:298: self.Library.Animation:Cancel(panelScale)
+src/Components/Dialog.lua:299: self.Library.Animation:Tween(
+src/Components/Dialog.lua:306: self.Library.Animation:Tween(
+src/Components/Dialog.lua:314: task.delay(duration + 0.04, function()
+src/Components/Dropdown.lua:162: self.Library.Animation:Tween(
+src/Components/Dropdown.lua:494: if self._popupSurface then self.Library.Animation:Cancel(self._popupSurface) end
+src/Components/Dropdown.lua:495: if self._popupScale then self.Library.Animation:Cancel(self._popupScale) end
+src/Components/Dropdown.lua:496: if self.Chevron and self.Chevron.Instance then self.Library.Animation:Cancel(self.Chevron.Instance) end
+src/Components/Notification.lua:123: library.Animation:Tween(frame, {
+src/Components/Notification.lua:128: self._timer = task.delay(self.Duration, function()
+src/Components/Notification.lua:140: self.Library.Animation:Tween(self.Frame, {
+src/Components/Notification.lua:146: task.delay(self.Library.Tokens.Animation.Normal, function()
+src/Components/ProgressBar.lua:101: self.Library.Animation:Tween(self.Fill, target, self.Library.Tokens.Animation.Normal, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+src/Components/ProgressBar.lua:111: self.Library.Animation:Cancel(self.Fill)
+src/Components/ProgressBar.lua:118: local tween = self.Library.Animation:Tween(
+src/Components/ProgressBar.lua:172: self.Library.Animation:Cancel(self.Fill)
+src/Components/ProgressBar.lua:189: if self.Fill then self.Library.Animation:Cancel(self.Fill) end
+src/Components/Slider.lua:117: self.Library.Animation:Tween(self.Fill, { Size = UDim2.fromScale(ratio, 1) }, self.Library.Tokens.Animation.Fast)
+src/Components/Slider.lua:118: self.Library.Animation:Tween(self.Thumb, { Position = UDim2.fromScale(ratio, 0.5) }, self.Library.Tokens.Animation.Fast)
+src/Components/Tab.lua:183: self.Library.Animation:Tween(self.Indicator, {
+src/Components/Toggle.lua:66: self.Library.Animation:Tween(self.Thumb, {
+src/Components/Tooltip.lua:52: library.Animation:Cancel(popup)
+src/Components/Tooltip.lua:54: library.Animation:Cancel(popupScale)
+src/Components/Tooltip.lua:128: library.Animation:Tween(
+src/Components/Tooltip.lua:135: library.Animation:Tween(
+src/Components/Tooltip.lua:149: local thread = task.delay(options.Delay or 0.45, function()
+src/Components/Window.lua:512: self.Library.Animation:Tween(self.Main, {
+src/Components/Window.lua:515: task.delay(self.Library.Tokens.Animation.Normal * 0.7, function()
+src/Components/Window.lua:528: self.Library.Animation:Tween(self.Main, {
+src/Components/Window.lua:531: task.delay(self.Library.Tokens.Animation.Normal, function()
+src/Components/Window.lua:632: self.Library.Animation:CancelTree(self.Main)
+src/Components/WindowControls.lua:35: window.Library.Animation:Tween(button, { BackgroundTransparency = config.Destructive and 0 or 0.08 }, window.Library.Tokens.Animation.Fast)
+src/Components/WindowControls.lua:41: window.Library.Animation:Tween(button, { BackgroundTransparency = 1 }, window.Library.Tokens.Animation.Fast)
+src/Core/Animation.lua:16: function Animation:Tween(instance, properties, duration, easingStyle, easingDirection)
+src/Core/Animation.lua:44: function Animation:Cancel(instance)
+src/Core/Animation.lua:52: function Animation:CancelTree(root)
+src/Core/ThemeManager.lua:82: self.Library.Animation:Tween(instance, properties, self.Library.Tokens.Animation.Normal)
+src/Note.lua:184: self.Animation:Tween(notification.Frame, {
