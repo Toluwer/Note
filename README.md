@@ -11,7 +11,7 @@ local Note = loadstring(game:HttpGet(
 ## Features
 
 - Frosted neutral dark and light themes with animated runtime switching
-- Built-in theme buttons, optional per-window accent colors, inherited custom themes, and theme signals
+- Built-in theme buttons, inherited custom themes, and theme signals
 - Draggable, optionally resizable windows with real icon-based minimize and close controls
 - Tabs, smoothly animated collapsible sections, live search, scrolling, responsive viewport clamping
 - Button, toggle, slider, input, searchable dropdown, keybind, color picker, label, paragraph, and divider controls
@@ -22,7 +22,7 @@ local Note = loadstring(game:HttpGet(
 - Official Lucide artwork through the pinned `latte-soft/lucide-roblox` atlas
 - Deterministic bundler that generates the committed single-file distribution
 
-`Dark` and `Light` intentionally use neutral grayscale defaults. Accent color is opt-in through `Window:SetAccent` or a color picker; the color picker remains a supported built-in component.
+`Dark` and `Light` use fixed neutral grayscale selection colors. The color picker is a standalone value control and does not recolor the interface.
 
 ## Installation
 
@@ -110,7 +110,6 @@ Common configuration:
 | `Subtitle` | `string?` | Secondary title |
 | `Icon` | `string?` | Registered Lucide icon |
 | `Theme` | `string \| table` | Theme name or custom theme |
-| `Accent` | `Color3?` | Per-window accent |
 | `Size` | `UDim2` | Initial size |
 | `Position` | `UDim2?` | Initial position |
 | `MinimumSize` | `Vector2` | Resize lower bound |
@@ -130,7 +129,6 @@ Window:SetTitle(text)
 Window:SetSubtitle(text)
 Window:SetIcon(name)
 Window:SetTheme(nameOrTable)
-Window:SetAccent(color)
 Window:Show()
 Window:Hide()
 Window:Toggle()
@@ -359,12 +357,12 @@ Escape cancels capture. Mouse movement and touch movement are not assignable.
 
 ```lua
 local Picker = Section:CreateColorpicker({
-    Name = "Accent",
+    Name = "Color",
     Default = Color3.fromRGB(176, 176, 180),
     Alpha = 0,
     ShowAlpha = true,
     Callback = function(color, alpha)
-        Window:SetAccent(color)
+        print(color, alpha)
     end,
 })
 
@@ -429,7 +427,7 @@ Built-in themes:
 - `Dark` — neutral charcoal and gray surfaces
 - `Light` — neutral white and gray surfaces
 
-Both built-in themes avoid colored or neon surface treatments. Accent color changes are optional. `Window:SetTheme` resets the accent to the selected theme by default, so every token changes together. Pass `{ PreserveAccent = true }` only when a custom accent should remain.
+Both built-in themes avoid colored or neon surface treatments. Their selection colors are fixed neutral theme tokens and cannot be overridden at runtime.
 
 Add ready-made theme buttons:
 
@@ -437,14 +435,12 @@ Add ready-made theme buttons:
 ThemeSection:CreateThemeButtons({
     Name = "Interface Theme",
     Themes = { "Dark", "Light" },
-    ResetAccent = true,
 })
 ```
 
 ```lua
 Window:SetTheme("Light")
 Window:SetTheme("Dark")
-Window:SetAccent(Color3.fromRGB(176, 176, 180))
 ```
 
 Register an inherited theme:

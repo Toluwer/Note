@@ -37,10 +37,11 @@ function Window.new(library, config)
         VisibilityChanged = Signal.new(),
         MinimizedChanged = Signal.new(),
         _tabOrder = 0,
+        _minimizeRevision = 0,
         _destroyed = false,
     }, Window)
 
-    self.ThemeManager = ThemeManager.new(library, config.Theme or library.DefaultTheme, config.Accent)
+    self.ThemeManager = ThemeManager.new(library, config.Theme or library.DefaultTheme)
     self.Maid:Give(self.ThemeManager)
     self.Maid:Give(self.Closed)
     self.Maid:Give(self.Destroyed)
@@ -461,25 +462,13 @@ function Window:SetIcon(icon)
     return self
 end
 
-function Window:SetTheme(theme, options)
-    options = options or {}
-    local preserveAccent = type(options) == "table" and options.PreserveAccent == true
-    self.ThemeManager:SetTheme(theme, nil, not preserveAccent)
+function Window:SetTheme(theme)
+    self.ThemeManager:SetTheme(theme)
     return self
 end
 
 function Window:ApplyTheme(theme)
     return self:SetTheme(theme)
-end
-
-function Window:ClearAccent()
-    self.ThemeManager:ClearAccent()
-    return self
-end
-
-function Window:SetAccent(color)
-    self.ThemeManager:SetAccent(color)
-    return self
 end
 
 function Window:Show()
@@ -505,18 +494,33 @@ end
 function Window:Minimize()
     if self._destroyed or self.Minimized then return self end
     self.Minimized = true
+    self._minimizeRevision += 1
+    local revision = self._minimizeRevision
     self._restoreSize = self.Main.Size
     if self.TitleDivider then self.TitleDivider.Visible = false end
     if self.ResizeHandle then self.ResizeHandle.Visible = false end
     local targetWidth = math.max(300, math.min(self.Main.AbsoluteSize.X, 420))
-    self.Library.Animation:Tween(self.Main, {
-        Size = UDim2.fromOffset(targetWidth, self.Library.Tokens.Size.TitleBar),
-    }, self.Library.Tokens.Animation.Normal)
-    task.delay(self.Library.Tokens.Animation.Normal * 0.7, function()
-        if self.Main and self.Minimized then
+    local tween = self.Library.Animation:Tween(
+        self.Main,
+        { Size = UDim2.fromOffset(targetWidth, self.Library.Tokens.Size.TitleBar) },
+        self.Library.Tokens.Animation.Normal,
+        Enum.EasingStyle.Quint,
+        Enum.EasingDirection.InOut
+    )
+    local function finish()
+        if not self._destroyed and revision == self._minimizeRevision and self.Minimized and self.Body then
             self.Body.Visible = false
         end
-    end)
+    end
+    if tween then
+        local connection
+        connection = tween.Completed:Connect(function(state)
+            if connection then connection:Disconnect() end
+            if state == Enum.PlaybackState.Completed then finish() end
+        end)
+    else
+        finish()
+    end
     self.MinimizedChanged:Fire(true)
     return self
 end
@@ -524,15 +528,30 @@ end
 function Window:Restore()
     if self._destroyed or not self.Minimized then return self end
     self.Minimized = false
+    self._minimizeRevision += 1
+    local revision = self._minimizeRevision
     self.Body.Visible = true
-    self.Library.Animation:Tween(self.Main, {
-        Size = self._restoreSize or UDim2.fromOffset(620, 450),
-    }, self.Library.Tokens.Animation.Normal)
-    task.delay(self.Library.Tokens.Animation.Normal, function()
-        if not self._destroyed and not self.Minimized and self.TitleDivider then
+    local tween = self.Library.Animation:Tween(
+        self.Main,
+        { Size = self._restoreSize or UDim2.fromOffset(620, 450) },
+        self.Library.Tokens.Animation.Normal,
+        Enum.EasingStyle.Quint,
+        Enum.EasingDirection.InOut
+    )
+    local function finish()
+        if not self._destroyed and revision == self._minimizeRevision and not self.Minimized and self.TitleDivider then
             self.TitleDivider.Visible = true
         end
-    end)
+    end
+    if tween then
+        local connection
+        connection = tween.Completed:Connect(function(state)
+            if connection then connection:Disconnect() end
+            if state == Enum.PlaybackState.Completed then finish() end
+        end)
+    else
+        finish()
+    end
     self.DragController:SetEnabled(self.Draggable)
     if self.ResizeHandle then self.ResizeHandle.Visible = true end
     self.MinimizedChanged:Fire(false)

@@ -273,6 +273,10 @@ function Dropdown:Open()
     local revision = self._popupRevision
 
     if self._popup then
+        if self._popupMaid and self._repositionPopup then
+            self._repositionPopup()
+            self._popupMaid:Replace("AnchorTracking", RunService.Heartbeat:Connect(self._repositionPopup))
+        end
         self:_animatePopup(true, revision)
         if self._searchBox then
             task.defer(function()
@@ -407,8 +411,9 @@ function Dropdown:Open()
             Layout.PositionOverlay(self.SelectButton, popup, self.Library.Overlay.Root)
         end
     end
+    self._repositionPopup = reposition
     reposition()
-    maid:Give(RunService.Heartbeat:Connect(reposition))
+    maid:Replace("AnchorTracking", RunService.Heartbeat:Connect(reposition))
     maid:Give(self.Library.InputManager:RegisterOutside({ popup, self.SelectButton }, function()
         self:Close()
     end))
@@ -432,6 +437,7 @@ function Dropdown:Close()
     if not self._popup or not self._isOpen then return self end
     self._isOpen = false
     self._popupRevision += 1
+    if self._popupMaid then self._popupMaid:Replace("AnchorTracking", nil) end
     self:_animatePopup(false, self._popupRevision)
     return self
 end

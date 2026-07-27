@@ -137,19 +137,30 @@ function Notification:Dismiss()
     if self._destroyed then return end
     self._destroyed = true
     local hiddenOffset = (self.Width or self.Frame.AbsoluteSize.X) + 24
-    self.Library.Animation:Tween(self.Frame, {
-        Position = UDim2.new(1, hiddenOffset, 0, self.Frame.Position.Y.Offset),
-        BackgroundTransparency = 1,
-    }, self.Library.Tokens.Animation.Normal)
-    local frame = self.Frame
-    local library = self.Library
-    task.delay(self.Library.Tokens.Animation.Normal, function()
-        self.Maid:Destroy()
-        if frame and frame.Parent then
-            frame:Destroy()
-        end
+
+local duration = self.Library.Tokens.Animation.Normal
+local tween = self.Library.Animation:Tween(self.Frame, {
+    Position = UDim2.new(1, hiddenOffset, 0, self.Frame.Position.Y.Offset),
+    BackgroundTransparency = 1,
+}, duration, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+local frame = self.Frame
+local library = self.Library
+local finalized = false
+local function finalize()
+    if finalized then return end
+    finalized = true
+    self.Maid:Destroy()
+    if frame and frame.Parent then frame:Destroy() end
+end
+if tween then
+    local connection
+    connection = tween.Completed:Connect(function()
+        if connection then connection:Disconnect() end
+        finalize()
     end)
-    library:_removeNotification(self)
+end
+task.delay(duration + 0.05, finalize)
+library:_removeNotification(self)
 end
 
 function Notification:Destroy()

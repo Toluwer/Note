@@ -14,7 +14,6 @@ function ThemeSwitcher.new(section, config)
     local self = BaseComponent.new(section, "ThemeSwitcher", config, hasDescription and 64 or 54)
     setmetatable(self, ThemeSwitcher)
     self.Themes = table.clone(themes)
-    self.ResetAccent = config.ResetAccent ~= false
     self.Value = self.Window.ThemeManager.Name or themes[1]
     self.Buttons = {}
     self:AddTextBlock(-220)
@@ -115,7 +114,7 @@ function ThemeSwitcher:SetValue(themeName, silent)
     if self._destroyed then return self end
     assert(type(themeName) == "string" and self.Library.Themes[themeName], string.format('[Note] Unknown theme "%s"', tostring(themeName)))
     self.Value = themeName
-    self.Window:SetTheme(themeName, { PreserveAccent = not self.ResetAccent })
+    self.Window:SetTheme(themeName)
     self:_refresh(true)
     if self.Flag then
         self.Library.Flags[self.Flag] = themeName

@@ -28,7 +28,7 @@ end
 
 function Note.new()
     return setmetatable({
-        Version = "0.3.0",
+        Version = "0.3.1",
         Tokens = Tokens,
         Themes = {
             Dark = Dark,
@@ -64,7 +64,7 @@ function Note:Init(config)
     self.Animation = Animation.new(self.Tokens)
     self.InputManager = InputManager.new()
     self.Overlay = Overlay.new(screenGui)
-    self.GlobalThemeManager = ThemeManager.new(self, self.DefaultTheme, config.Accent)
+    self.GlobalThemeManager = ThemeManager.new(self, self.DefaultTheme)
     self.Tooltip = Tooltip.new(self)
     self.Capabilities = Compatibility.Capabilities()
     self._initialized = true
@@ -106,12 +106,9 @@ function Note:RegisterTheme(name, theme)
     return self
 end
 
-function Note:SetDefaultTheme(theme, accent)
+function Note:SetDefaultTheme(theme)
     self:_ensureInitialized()
     self.GlobalThemeManager:SetTheme(theme)
-    if accent then
-        self.GlobalThemeManager:SetAccent(accent)
-    end
     self.DefaultTheme = type(theme) == "string" and theme or self.DefaultTheme
     return self
 end

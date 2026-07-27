@@ -33,6 +33,7 @@ function Button.new(section, config)
     })
     Utilities.Corner(action, self.Library.Tokens.Radius.Medium)
     local actionStroke = Utilities.Stroke(action, Color3.new(), 1, 0)
+    local pressScale = Utilities.Create("UIScale", { Scale = 1, Parent = action })
     local style = styleTokens[self.Style] or styleTokens.Secondary
     self.Window.ThemeManager:Bind(action, {
         BackgroundColor3 = style.Background,
@@ -80,17 +81,28 @@ function Button.new(section, config)
         self._hovered = true
         self.Window.ThemeManager:Apply(action, true)
     end))
-    self.Maid:Give(action.MouseLeave:Connect(function()
-        self._hovered = false
-        self.Window.ThemeManager:Apply(action, true)
-    end))
-    self.Maid:Give(action.MouseButton1Down:Connect(function()
-        if self.Disabled or self.Loading then return end
-        self.Library.Animation:Tween(action, { Size = UDim2.fromOffset(120, 32) }, self.Library.Tokens.Animation.Fast)
-    end))
-    self.Maid:Give(action.MouseButton1Up:Connect(function()
-        self.Library.Animation:Tween(action, { Size = UDim2.fromOffset(124, 34) }, self.Library.Tokens.Animation.Fast)
-    end))
+
+local function setPressed(pressed)
+    self.Library.Animation:Tween(
+        pressScale,
+        { Scale = pressed and 0.97 or 1 },
+        self.Library.Tokens.Animation.Fast,
+        Enum.EasingStyle.Quint,
+        Enum.EasingDirection.Out
+    )
+end
+self.Maid:Give(action.MouseLeave:Connect(function()
+    self._hovered = false
+    setPressed(false)
+    self.Window.ThemeManager:Apply(action, true)
+end))
+self.Maid:Give(action.MouseButton1Down:Connect(function()
+    if self.Disabled or self.Loading then return end
+    setPressed(true)
+end))
+self.Maid:Give(action.MouseButton1Up:Connect(function()
+    setPressed(false)
+end))
     self.Maid:Give(action.Activated:Connect(function()
         self:Fire()
     end))

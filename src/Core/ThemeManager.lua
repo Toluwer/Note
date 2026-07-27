@@ -4,21 +4,16 @@ local Utilities = require("src/Core/Utilities")
 local ThemeManager = {}
 ThemeManager.__index = ThemeManager
 
-function ThemeManager.new(library, theme, accent)
+function ThemeManager.new(library, theme)
     local self = setmetatable({
         Library = library,
         Name = nil,
         Theme = nil,
-        Accent = accent,
-        _accentOverride = accent ~= nil,
         Bindings = setmetatable({}, { __mode = "k" }),
         Changed = Signal.new(),
         _destroyed = false,
     }, ThemeManager)
     self:SetTheme(theme or library.DefaultTheme or "Dark", false)
-    if accent then
-        self:SetAccent(accent, false)
-    end
     return self
 end
 
@@ -37,16 +32,11 @@ function ThemeManager:Resolve(theme)
 end
 
 function ThemeManager:Get(token)
-    if token == "Accent" and self.Accent then
-        return self.Accent
-    end
     return self.Theme[token]
 end
 
 function ThemeManager:Bind(instance, propertyMap)
-    if self._destroyed or not instance then
-        return
-    end
+    if self._destroyed or not instance then return end
     self.Bindings[instance] = propertyMap
     self:Apply(instance, false)
 end
@@ -57,90 +47,45 @@ end
 
 function ThemeManager:Apply(instance, animate)
     local map = self.Bindings[instance]
-    if not map or not instance.Parent then
-        return
-    end
+    if not map or not instance.Parent then return end
     local properties = {}
     for property, token in pairs(map) do
-        local value
-        if type(token) == "function" then
-            value = token(self.Theme, self.Accent or self.Theme.Accent)
-        else
-            value = self:Get(token)
-        end
+        local value = type(token) == "function"
+            and token(self.Theme, self.Theme.Accent)
+            or self:Get(token)
         if property == "BackgroundTransparency"
             and self.Library.FrostedGlass == false
             and type(value) == "number"
             and value < 0.5 then
             value = 0
         end
-        if value ~= nil then
-            properties[property] = value
-        end
+        if value ~= nil then properties[property] = value end
     end
     if animate and self.Library.Animation then
         self.Library.Animation:Tween(instance, properties, self.Library.Tokens.Animation.Normal)
     else
         for property, value in pairs(properties) do
-            local ok, err = pcall(function()
-                instance[property] = value
-            end)
-            if not ok then
-                warn("[Note] Theme binding failed:", err)
-            end
+            local ok, err = pcall(function() instance[property] = value end)
+            if not ok then warn("[Note] Theme binding failed:", err) end
         end
     end
 end
 
 function ThemeManager:ApplyAll(animate)
-    for instance in pairs(self.Bindings) do
-        self:Apply(instance, animate)
-    end
+    for instance in pairs(self.Bindings) do self:Apply(instance, animate) end
 end
 
-function ThemeManager:SetTheme(theme, animate, resetAccent)
-    if self._destroyed then
-        return
-    end
-    if resetAccent then
-        self._accentOverride = false
-        self.Accent = nil
-    end
+function ThemeManager:SetTheme(theme, animate)
+    if self._destroyed then return end
     local resolved, name = self:Resolve(theme)
     self.Theme = resolved
     self.Name = name
-    if not self._accentOverride then
-        self.Accent = resolved.Accent
-    end
-    self:ApplyAll(animate ~= false)
-    self.Changed:Fire(self.Theme, self.Name)
-end
-
-function ThemeManager:SetAccent(color, animate)
-    assert(typeof(color) == "Color3", "[Note] Accent must be a Color3")
-    if self._destroyed then
-        return
-    end
-    self.Accent = color
-    self._accentOverride = true
-    self:ApplyAll(animate ~= false)
-    self.Changed:Fire(self.Theme, self.Name)
-end
-
-function ThemeManager:ClearAccent(animate)
-    if self._destroyed then
-        return
-    end
-    self._accentOverride = false
-    self.Accent = self.Theme and self.Theme.Accent or nil
     self:ApplyAll(animate ~= false)
     self.Changed:Fire(self.Theme, self.Name)
 end
 
 function ThemeManager:Destroy()
-    if self._destroyed then
-        return
-    end
+    if self._destroyed then return end
     self._destroyed = true
     table.clear(self.Bindings)
     self.Changed:Destroy()

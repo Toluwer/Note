@@ -84,7 +84,7 @@ function Dialog:_releaseBlur(immediate)
         Enum.EasingStyle.Quint,
         Enum.EasingDirection.In
     )
-    task.delay(duration + 0.04, destroyOwnedBlur)
+    task.delay(duration + 0.05, destroyOwnedBlur)
 end
 
 function Dialog.new(library, config, themeManager)
@@ -296,24 +296,35 @@ function Dialog:Close(result, immediate)
 
     self.Library.Animation:Cancel(panel)
     self.Library.Animation:Cancel(panelScale)
-    self.Library.Animation:Tween(
-        panel,
-        { GroupTransparency = 1 },
-        duration,
-        Enum.EasingStyle.Quint,
-        Enum.EasingDirection.In
-    )
-    self.Library.Animation:Tween(
-        panelScale,
-        { Scale = 0.97 },
-        duration,
-        Enum.EasingStyle.Quint,
-        Enum.EasingDirection.In
-    )
 
-    task.delay(duration + 0.04, function()
-        self.Maid:Destroy()
+local fade = self.Library.Animation:Tween(
+    panel,
+    { GroupTransparency = 1 },
+    duration,
+    Enum.EasingStyle.Quint,
+    Enum.EasingDirection.InOut
+)
+self.Library.Animation:Tween(
+    panelScale,
+    { Scale = 0.97 },
+    duration,
+    Enum.EasingStyle.Quint,
+    Enum.EasingDirection.InOut
+)
+local finalized = false
+local function finalize()
+    if finalized then return end
+    finalized = true
+    self.Maid:Destroy()
+end
+if fade then
+    local connection
+    connection = fade.Completed:Connect(function()
+        if connection then connection:Disconnect() end
+        finalize()
     end)
+end
+task.delay(duration + 0.05, finalize)
 end
 
 function Dialog:Destroy()

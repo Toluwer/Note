@@ -311,26 +311,26 @@ local Appearance = Window:CreateTab({
 
 local Theme = Appearance:CreateSection({
     Name = "Theme",
-    Description = "Runtime theme and accent switching.",
+    Description = "Runtime theme switching and standalone color selection.",
     Icon = "paintbrush",
 })
 
 Theme:CreateColorpicker({
-    Name = "Accent Color",
-    Description = "Hue, saturation, value, RGB, hex, and alpha controls.",
-    Flag = "accent",
+    Name = "Color Picker",
+    Description = "Standalone hue, saturation, value, RGB, hex, and alpha selection.",
+    Flag = "selectedColor",
     Default = Color3.fromRGB(176, 176, 180),
     ShowAlpha = true,
-    Callback = function(color)
-        Window:SetAccent(color)
+    Callback = function(color, alpha)
+        print("Selected color:", color, "alpha:", alpha)
     end,
 })
 
-Theme:CreateThemeButtons({
+Theme:CreateThemeButtons
+({
     Name = "Interface Theme",
-    Description = "Switches every bound surface, text, icon, border, and accent token.",
+    Description = "Switches every bound surface, text, icon, border, and selection token.",
     Themes = { "Dark", "Light" },
-    ResetAccent = true,
 })
 
 local Typography = Appearance:CreateSection({
