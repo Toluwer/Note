@@ -50,7 +50,6 @@ def main() -> None:
                 fail(f"{module} contains invalid asset id {asset}")
 
     note_source = (SRC / "Note.lua").read_text(encoding="utf-8")
-    init_source = (SRC / "init.lua").read_text(encoding="utf-8")
     required_note_methods = {
         "Note:CreateWindow",
         "Note:_registerWindow",
@@ -70,8 +69,8 @@ def main() -> None:
     )
     if missing_note_methods:
         fail("src/Note.lua is missing runtime methods: " + ", ".join(missing_note_methods))
-    if 'instance.Version = "0.4.0"' not in init_source:
-        fail("src/init.lua is not exposing Note 0.4.0")
+    if 'Version = "0.4.0"' not in note_source:
+        fail("src/Note.lua is not version 0.4.0")
 
     section_source = (SRC / "Components" / "Section.lua").read_text(encoding="utf-8")
     required_section_factories = {
