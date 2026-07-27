@@ -26,6 +26,133 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Finalize 0.3.1 source
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+          import re
+
+          showcase_path = Path('examples/showcase.lua')
+          showcase = showcase_path.read_text()
+          pattern = re.compile(
+              r'local Theme = Appearance:CreateSection\(\{.*?\n\}\)\n\n'
+              r'Theme:CreateColorpicker\(\{.*?\n\}\)\n\n'
+              r'Theme:CreateThemeButtons\s*\(\{.*?\n\}\)\n',
+              re.S,
+          )
+          replacement = dedent('''
+              local Theme = Appearance:CreateSection({
+                  Name = "Theme",
+                  Description = "Switch between the built-in neutral themes.",
+                  Icon = "paintbrush",
+              })
+
+              Theme:CreateThemeButtons({
+                  Name = "Interface Theme",
+                  Description = "Switches every bound surface, text, icon, border, and selection token.",
+                  Themes = { "Dark", "Light" },
+              })
+
+              local ColorInput = Appearance:CreateSection({
+                  Name = "Color Input",
+                  Description = "Standalone color values with no connection to the interface theme.",
+                  Icon = "palette",
+              })
+
+              ColorInput:CreateColorpicker({
+                  Name = "Color Picker",
+                  Description = "Hue, saturation, value, RGB, hex, and alpha selection.",
+                  Flag = "selectedColor",
+                  Default = Color3.fromRGB(176, 176, 180),
+                  ShowAlpha = true,
+                  Callback = function(color, alpha)
+                      print("Selected color:", color, "alpha:", alpha)
+                  end,
+              })
+          ''').lstrip()
+          showcase, count = pattern.subn(replacement, showcase, count=1)
+          if count != 1:
+              raise RuntimeError('could not separate color input from the Theme section')
+          showcase_path.write_text(showcase)
+
+          check_path = Path('tools/check.py')
+          check = check_path.read_text()
+          marker = '    bundler = load_bundler()\n'
+          guards = dedent('''
+              combined_source = "\\n".join(
+                  path.read_text(encoding="utf-8") for path in SRC.rglob("*.lua")
+              )
+              showcase_source = (ROOT / "examples" / "showcase.lua").read_text(encoding="utf-8")
+              forbidden_accent_api = {
+                  "SetAccent", "ClearAccent", "ResetAccent", "PreserveAccent",
+                  "config.Accent", "_accentOverride",
+              }
+              remaining_accent_api = sorted(
+                  token for token in forbidden_accent_api
+                  if token in combined_source or token in showcase_source
+              )
+              if remaining_accent_api:
+                  fail("runtime accent override API returned: " + ", ".join(remaining_accent_api))
+              if "no connection to the interface theme" not in showcase_source:
+                  fail("showcase color picker is not separated from interface themes")
+
+              animation_guards = {
+                  SRC / "Components" / "Button.lua": ("pressScale", "UIScale"),
+                  SRC / "Components" / "Window.lua": ("_minimizeRevision", "PlaybackState.Completed"),
+                  SRC / "Components" / "Dropdown.lua": ("AnchorTracking", "_popupRevision"),
+                  SRC / "Components" / "ColorpickerSmooth.lua": ("CanvasGroup", "fade.Completed"),
+                  SRC / "Components" / "CommandPaletteHeadless.lua": ("BindActionAtPriority", "ContextActionService"),
+              }
+              for path, required_tokens in animation_guards.items():
+                  text = path.read_text(encoding="utf-8")
+                  missing_tokens = [token for token in required_tokens if token not in text]
+                  if missing_tokens:
+                      fail(f"{path.relative_to(ROOT)} lost animation safety tokens: " + ", ".join(missing_tokens))
+
+          ''')
+          if 'forbidden_accent_api = {' not in check:
+              if marker not in check:
+                  raise RuntimeError('tools/check.py insertion marker missing')
+              check_path.write_text(check.replace(marker, guards + marker, 1))
+
+          for path in (
+              Path('.github/workflows/polish-ui.yml'),
+              Path('.github/workflows/finalize-031.yml'),
+              Path('.github/workflows/finalize-031b.yml'),
+              Path('.finalize-error.txt'),
+          ):
+              if path.exists():
+                  path.unlink()
+
+          Path('.github/workflows/build.yml').write_text('''name: Build distribution
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "tools/bundle.py"
+      - "tools/check.py"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Generate and verify distribution
         run: |
           python tools/bundle.py
@@ -40,3 +167,18 @@ jobs:
             git commit -m "build: regenerate main.lua"
             git push
           fi
+''')
+          PY
+
+      - name: Generate and verify distribution
+        run: |
+          python tools/bundle.py
+          python tools/check.py
+
+      - name: Commit finalized release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "release: finalize Note 0.3.1 source"
+          git push
