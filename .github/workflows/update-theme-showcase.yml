@@ -1,0 +1,60 @@
+name: Update theme showcase
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/update-theme-showcase.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace theme switcher with ordinary buttons
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("examples/showcase.lua")
+          text = path.read_text(encoding="utf-8")
+          old = '''Theme:CreateThemeButtons({
+              Name = "Interface Theme",
+              Description = "Switches every bound surface, text, icon, border, and selection token.",
+              Themes = { "Dark", "Light" },
+          })'''
+          new = '''Theme:CreateParagraph({
+              Title = "Built-in presets",
+              Content = "These are ordinary buttons added only to the showcase. Normal scripts do not receive automatic theme controls. See examples/themes.lua for every preset.",
+          })
+
+          local showcaseThemes = {
+              "Dark", "Light", "Black", "Red", "Orange", "Gold",
+              "Green", "Emerald", "Cyan", "Blue", "Purple", "Pink",
+          }
+
+          for _, themeName in ipairs(showcaseThemes) do
+              Theme:CreateButton({
+                  Name = themeName,
+                  ButtonText = "Apply",
+                  Style = "Secondary",
+                  Callback = function()
+                      Window:SetTheme(themeName)
+                  end,
+              })
+          end'''
+          if old not in text:
+              raise SystemExit("showcase theme block was not found")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+      - name: Commit showcase
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add examples/showcase.lua
+          git commit -m "docs: use ordinary buttons for theme showcase"
+          git push
