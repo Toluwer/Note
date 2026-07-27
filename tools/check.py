@@ -158,6 +158,24 @@ def main() -> None:
         if token not in split_example:
             fail(f"split-layout example is missing {token}")
 
+    base_component_source = (SRC / "Internal" / "BaseComponent.lua").read_text(encoding="utf-8")
+    responsive_layout_tokens = {
+        "RESPONSIVE_CONTROLS",
+        "ResponsiveBreakpoint",
+        "tallControl",
+        "function BaseComponent:_bindResponsiveLayout",
+        'GetPropertyChangedSignal("AbsoluteSize")',
+        "specification.FullWidth",
+    }
+    missing_responsive_tokens = sorted(
+        token for token in responsive_layout_tokens if token not in base_component_source
+    )
+    if missing_responsive_tokens:
+        fail(
+            "BaseComponent.lua lost responsive narrow-layout support: "
+            + ", ".join(missing_responsive_tokens)
+        )
+
     bundler = load_bundler()
     expected = bundler.build()
     before = BUNDLE.read_text(encoding="utf-8") if BUNDLE.exists() else None
