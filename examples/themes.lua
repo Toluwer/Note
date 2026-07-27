@@ -8,50 +8,94 @@ Note:Init({
 })
 
 local Window = Note:CreateWindow({
-    Title = "Theme Lab",
-    Subtitle = "Frosted neutral dark and light themes",
+    Title = "Theme Gallery",
+    Subtitle = "Built-in fixed color themes",
     Icon = "palette",
     Theme = "Dark",
-    Size = UDim2.fromOffset(620, 450),
+    Size = UDim2.fromOffset(760, 560),
+    MinimumSize = Vector2.new(520, 360),
+    MaximumSize = Vector2.new(980, 760),
     Draggable = true,
     Resizable = true,
+    Search = true,
 })
 
-local Appearance = Window:CreateTab({
-    Name = "Appearance",
+local Themes = Window:CreateTab({
+    Name = "Themes",
     Icon = "paintbrush",
+    Layout = "Split",
+    SplitGap = 10,
+    StackAt = 520,
 })
 
-local Theme = Appearance:CreateSection({
-    Name = "Theme",
-    Description = "Switch every theme token or choose an optional custom accent.",
+local families = {
+    {
+        Name = "Neutral",
+        Side = "Left",
+        Themes = { "Dark", "Light", "Black", "White", "Graphite", "Slate", "Silver" },
+    },
+    {
+        Name = "Red and Orange",
+        Side = "Left",
+        Themes = { "Red", "Scarlet", "Crimson", "Maroon", "Coral", "Orange", "Tangerine" },
+    },
+    {
+        Name = "Yellow and Earth",
+        Side = "Left",
+        Themes = { "Amber", "Gold", "Yellow", "Olive", "Peach", "Brown", "Copper", "Bronze" },
+    },
+    {
+        Name = "Green",
+        Side = "Right",
+        Themes = { "Lime", "Green", "Forest", "Emerald", "Jade", "Mint", "Teal", "Turquoise" },
+    },
+    {
+        Name = "Blue",
+        Side = "Right",
+        Themes = { "Cyan", "Aqua", "Sky", "Blue", "Navy", "Indigo", "Periwinkle" },
+    },
+    {
+        Name = "Purple and Pink",
+        Side = "Right",
+        Themes = { "Violet", "Purple", "Lavender", "Lilac", "Fuchsia", "Magenta", "Pink", "Rose", "Plum" },
+    },
+}
+
+for _, family in ipairs(families) do
+    local Section = Themes:CreateSection({
+        Name = family.Name,
+        Description = "Fixed built-in presets. These buttons exist only in this example.",
+        Side = family.Side,
+        Collapsible = true,
+    })
+
+    for _, themeName in ipairs(family.Themes) do
+        Section:CreateButton({
+            Name = themeName,
+            ButtonText = "Apply",
+            Style = "Secondary",
+            Callback = function()
+                Window:SetTheme(themeName)
+            end,
+        })
+    end
+end
+
+local Information = Window:CreateTab({
+    Name = "Information",
+    Icon = "info",
 })
 
-Theme:CreateThemeButtons({
-    Name = "Interface Theme",
-    Description = "Dark and Light reset the complete palette, including the accent.",
-    Themes = { "Dark", "Light" },
-    ResetAccent = true,
+local Details = Information:CreateSection({
+    Name = "Theme behavior",
 })
 
-Theme:CreateColorpicker({
-    Name = "Accent Color",
-    Description = "The picker remains available for an optional custom accent.",
-    Default = Color3.fromRGB(190, 190, 194),
-    Callback = function(color)
-        Window:SetAccent(color)
-    end,
+Details:CreateParagraph({
+    Title = "No automatic theme controls",
+    Content = "Choosing Theme = \"Pink\" or another preset applies it directly. Note never inserts theme buttons into ordinary scripts. The buttons in this gallery are normal CreateButton controls added only for testing.",
 })
 
-Theme:CreateButton({
-    Name = "Reset Theme Accent",
-    Icon = "rotate-ccw",
-    Callback = function()
-        Window:ClearAccent()
-    end,
-})
-
-Theme:CreateParagraph({
-    Title = "Frosted glass",
-    Content = "Note uses translucent UI surfaces only. It never adds a Lighting blur or blurs the game view.",
+Details:CreateParagraph({
+    Title = "Color picker separation",
+    Content = "The color picker continues to return standalone Color3 values and does not modify the interface theme.",
 })
