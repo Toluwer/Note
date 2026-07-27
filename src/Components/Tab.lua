@@ -7,6 +7,14 @@ local Section = require("src/Components/Section")
 local Tab = {}
 Tab.__index = Tab
 
+local function normalizeLayout(value)
+    return string.lower(tostring(value or "Single")) == "split" and "Split" or "Single"
+end
+
+local function normalizeSide(value)
+    return string.lower(tostring(value or "Left")) == "right" and "Right" or "Left"
+end
+
 function Tab.new(window, config)
     config = config or {}
     local self = setmetatable({
@@ -14,6 +22,9 @@ function Tab.new(window, config)
         Library = window.Library,
         Name = tostring(config.Name or "Tab"),
         Icon = config.Icon,
+        Layout = normalizeLayout(config.Layout or (config.Split and "Split" or "Single")),
+        StackAt = tonumber(config.StackAt),
+        SplitGap = math.max(4, tonumber(config.SplitGap) or 12),
         Disabled = config.Disabled == true,
         Visible = config.Visible ~= false,
         Selected = Signal.new(),
@@ -21,6 +32,7 @@ function Tab.new(window, config)
         Sections = {},
         Maid = Maid.new(),
         _layoutOrder = 0,
+        _stacked = false,
         _destroyed = false,
     }, Tab)
 
@@ -111,11 +123,98 @@ function Tab.new(window, config)
         Parent = window.Pages,
     })
     self.Window.ThemeManager:Bind(page, { ScrollBarImageColor3 = "Scrollbar" })
-    Utilities.Padding(page, 14, 14, 14, 14)
-    local pageList = Utilities.List(page, Enum.FillDirection.Vertical, 12)
-    self.Maid:Give(pageList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        page.CanvasSize = UDim2.fromOffset(0, pageList.AbsoluteContentSize.Y + 28)
-    end))
+
+    local content = Utilities.Create("Frame", {
+        Name = "Content",
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.fromOffset(14, 14),
+        Size = UDim2.new(1, -28, 0, 0),
+        Parent = page,
+    })
+
+    local singleColumn = Utilities.Create("Frame", {
+        Name = "SingleColumn",
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 0),
+        Visible = self.Layout == "Single",
+        Parent = content,
+    })
+    local singleList = Utilities.List(singleColumn, Enum.FillDirection.Vertical, 12)
+
+    local splitRoot = Utilities.Create("Frame", {
+        Name = "SplitColumns",
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 0),
+        Visible = self.Layout == "Split",
+        Parent = content,
+    })
+
+    local leftColumn = Utilities.Create("Frame", {
+        Name = "LeftColumn",
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.fromOffset(0, 0),
+        Size = UDim2.new(0.5, -6, 0, 0),
+        Parent = splitRoot,
+    })
+    local leftList = Utilities.List(leftColumn, Enum.FillDirection.Vertical, 12)
+
+    local rightColumn = Utilities.Create("Frame", {
+        Name = "RightColumn",
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0.5, 6, 0, 0),
+        Size = UDim2.new(0.5, -6, 0, 0),
+        Parent = splitRoot,
+    })
+    local rightList = Utilities.List(rightColumn, Enum.FillDirection.Vertical, 12)
+
+    local function updatePageLayout()
+        if self._destroyed then return end
+
+        local height = 0
+        local split = self.Layout == "Split"
+        singleColumn.Visible = not split
+        splitRoot.Visible = split
+
+        if not split then
+            height = math.max(0, singleList.AbsoluteContentSize.Y)
+            singleColumn.Position = UDim2.fromOffset(0, 0)
+            singleColumn.Size = UDim2.new(1, 0, 0, height)
+            self._stacked = false
+        else
+            local gap = self.SplitGap
+            local leftHeight = math.max(0, leftList.AbsoluteContentSize.Y)
+            local rightHeight = math.max(0, rightList.AbsoluteContentSize.Y)
+            local availableWidth = math.max(0, content.AbsoluteSize.X)
+            local stacked = self.StackAt ~= nil and self.StackAt > 0 and availableWidth < self.StackAt
+            self._stacked = stacked
+
+            if stacked then
+                local between = leftHeight > 0 and rightHeight > 0 and gap or 0
+                leftColumn.Position = UDim2.fromOffset(0, 0)
+                leftColumn.Size = UDim2.new(1, 0, 0, leftHeight)
+                rightColumn.Position = UDim2.fromOffset(0, leftHeight + between)
+                rightColumn.Size = UDim2.new(1, 0, 0, rightHeight)
+                height = leftHeight + between + rightHeight
+            else
+                local halfGap = gap * 0.5
+                leftColumn.Position = UDim2.fromOffset(0, 0)
+                leftColumn.Size = UDim2.new(0.5, -halfGap, 0, leftHeight)
+                rightColumn.Position = UDim2.new(0.5, halfGap, 0, 0)
+                rightColumn.Size = UDim2.new(0.5, -halfGap, 0, rightHeight)
+                height = math.max(leftHeight, rightHeight)
+            end
+
+            splitRoot.Size = UDim2.new(1, 0, 0, height)
+        end
+
+        content.Size = UDim2.new(1, -28, 0, height)
+        page.CanvasSize = UDim2.fromOffset(0, height + 28)
+    end
 
     local empty = Utilities.Create("TextLabel", {
         BackgroundTransparency = 1,
@@ -134,13 +233,26 @@ function Tab.new(window, config)
     self.Label = label
     self.Indicator = indicator
     self.Page = page
-    self.PageContent = page
-    self.PageList = pageList
+    self.PageContent = singleColumn
+    self.ContentRoot = content
+    self.SingleColumn = singleColumn
+    self.SplitRoot = splitRoot
+    self.LeftColumn = leftColumn
+    self.RightColumn = rightColumn
+    self.PageList = singleList
+    self.LeftList = leftList
+    self.RightList = rightList
     self.EmptyState = empty
+    self._updatePageLayout = updatePageLayout
+
     self.Maid:Give(button)
     self.Maid:Give(page)
     self.Maid:Give(self.Selected)
     self.Maid:Give(self.Destroyed)
+    self.Maid:Give(page:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePageLayout))
+    self.Maid:Give(singleList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updatePageLayout))
+    self.Maid:Give(leftList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updatePageLayout))
+    self.Maid:Give(rightList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updatePageLayout))
     self.Maid:Give(button.Activated:Connect(function()
         self:Select()
     end))
@@ -153,6 +265,7 @@ function Tab.new(window, config)
         self.Window.ThemeManager:Apply(button, true)
     end))
 
+    task.defer(updatePageLayout)
     window:_registerTab(self)
     return self
 end
@@ -162,13 +275,41 @@ function Tab:_nextLayoutOrder()
     return self._layoutOrder
 end
 
+function Tab:_normalizeSide(side)
+    return normalizeSide(side)
+end
+
+function Tab:_getSectionParent(side)
+    if self.Layout == "Split" then
+        return normalizeSide(side) == "Right" and self.RightColumn or self.LeftColumn
+    end
+    return self.SingleColumn
+end
+
+function Tab:_refreshLayout()
+    if self._updatePageLayout then
+        task.defer(self._updatePageLayout)
+    end
+end
+
+function Tab:_reparentSections()
+    for _, section in ipairs(self.Sections) do
+        if section.Frame and section.Frame.Parent then
+            section.Frame.Parent = self:_getSectionParent(section.Side)
+        end
+    end
+    self:_refreshLayout()
+end
+
 function Tab:_registerSection(section)
     table.insert(self.Sections, section)
+    self:_refreshLayout()
 end
 
 function Tab:_unregisterSection(section)
     local index = table.find(self.Sections, section)
     if index then table.remove(self.Sections, index) end
+    self:_refreshLayout()
 end
 
 function Tab:Select()
@@ -190,6 +331,7 @@ function Tab:_setSelected(selected)
     end
     if selected then
         self.Selected:Fire()
+        self:_refreshLayout()
     end
 end
 
@@ -199,10 +341,73 @@ function Tab:ApplySearch(query)
         any = section:ApplySearch(query) or any
     end
     self.EmptyState.Visible = query ~= "" and not any
+    self:_refreshLayout()
 end
 
 function Tab:CreateSection(config)
-    return Section.new(self, config)
+    config = config or {}
+    local side = normalizeSide(config.Side)
+    local previousParent = self.PageContent
+    self.PageContent = self:_getSectionParent(side)
+    local ok, section = pcall(Section.new, self, config)
+    self.PageContent = previousParent
+    if not ok then
+        error(section, 2)
+    end
+
+    section.Side = side
+
+    function section:SetSide(newSide)
+        if self._destroyed then return self end
+        newSide = self.Tab:_normalizeSide(newSide)
+        if self.Side == newSide then return self end
+        self.Side = newSide
+        if self.Frame and self.Frame.Parent then
+            self.Frame.Parent = self.Tab:_getSectionParent(newSide)
+        end
+        self.Tab:_refreshLayout()
+        return self
+    end
+
+    function section:GetSide()
+        return self.Side
+    end
+
+    return section
+end
+
+function Tab:SetLayout(layout)
+    layout = normalizeLayout(layout)
+    if self.Layout == layout then return self end
+    self.Layout = layout
+    self:_reparentSections()
+    return self
+end
+
+function Tab:GetLayout()
+    return self.Layout
+end
+
+function Tab:SetSplitEnabled(value)
+    return self:SetLayout(value == true and "Split" or "Single")
+end
+
+function Tab:SetStackBreakpoint(width)
+    if width == nil or width == false then
+        self.StackAt = nil
+    else
+        width = tonumber(width)
+        if not width or width <= 0 then
+            error("[Note] Tab:SetStackBreakpoint expected a positive number or nil", 2)
+        end
+        self.StackAt = width
+    end
+    self:_refreshLayout()
+    return self
+end
+
+function Tab:IsStacked()
+    return self._stacked == true
 end
 
 function Tab:SetName(name)
